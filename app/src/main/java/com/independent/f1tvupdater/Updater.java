@@ -385,14 +385,22 @@ public final class Updater {
         if (!binaries.isEmpty()) {
             File compatible = null;
             for (String abi : Build.SUPPORTED_ABIS) {
+                // Android reports "arm64-v8a" / "armeabi-v7a" but APK splits use
+                // "arm64_v8a" / "armeabi_v7a". Keep the OS preference order.
+                String splitAbi = abi.toLowerCase(Locale.ROOT).replace('-', '_');
                 for (File f : binaries) {
-                    if (f.getName().toLowerCase(Locale.ROOT).endsWith("config." + abi.toLowerCase(Locale.ROOT) + ".apk")) {
+                    if (f.getName().toLowerCase(Locale.ROOT).endsWith("config." + splitAbi + ".apk")) {
                         compatible = f; break;
                     }
                 }
                 if (compatible != null) break;
             }
-            if (compatible == null) throw new SecurityException("No compatible APK ABI for this TV");
+            if (compatible == null) {
+                List<String> available = new ArrayList<>();
+                for (File f : binaries) available.add(f.getName());
+                throw new SecurityException("No compatible APK ABI. TV supports: " +
+                        Arrays.toString(Build.SUPPORTED_ABIS) + "; release contains: " + available);
+            }
             result.add(compatible);
         }
         if (!densities.isEmpty()) {
