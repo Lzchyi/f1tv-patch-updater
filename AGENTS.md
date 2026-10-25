@@ -1,5 +1,6 @@
 # F1TV Patch Updater
 
+- `SelfUpdater` owns public-edition self-updates with separate preferences/files/session callbacks. `SelfUpdatePolicy` is host-testable. Check metadata on opening/manual/daily jobs; only Update now downloads and installs. Require the exact own package, matching installed signing certificate, higher code, matching release name and GitHub SHA-256. Never uninstall the updater or switch editions. Recover cleanup through MY_PACKAGE_REPLACED and startup. Personal builds remain local with no public self-update feed.
 - Native Android TV app in `app/src/main/java/com/independent/f1tvupdater`; no third-party runtime dependencies.
 - `Updater` owns releases, bounded APKM extraction, split selection, pinned candidate metadata and PackageInstaller sessions. `UpdatePolicy` and `ReleaseCheckPolicy` contain host-testable decisions; `UpdateFiles` owns narrowly scoped staging cleanup. `MainActivity` owns confirmation and Android uninstall requests.
 - Never uninstall F1 TV from a background job. Same-key updates preserve data; unrelated keys require the trusted upstream SHA-256, revalidated candidate, explicit data-loss/sign-in warning and Android confirmation. Replacement recovery requires a pinned, user-initiated replacement.

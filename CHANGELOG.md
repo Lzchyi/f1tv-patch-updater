@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.1 — 2026-10-25
+
+### Added
+- Public-edition self-update checks against this repository's stable GitHub releases, on opening, manual checks and the daily job.
+- A separate Update the updater? popup with Update now and Later, retaining the existing three F1 TV controls.
+- Verified in-place updater installation with a bounded download, pinned SHA-256, matching package/signing identity, newer Android code and Android confirmation.
+- Independent self-update staging and preferences, retained cancellation/retry, and cleanup after replacing the updater's own process.
+
+### Documentation
+- Updated the contributor-added FAQ, installation guide and README for both on-TV update paths and the one-time upgrade from earlier updater releases.
+- Added the verified Sony BRAVIA VH1 / Android 12 / 32-bit ARM environment and explicit test results, distinguishing owner-reported playback from other-device or 4K/HDR claims.
+- Kept the original-logo personal build local; only the public APK is distributed through public releases.
+
 ## 0.3.0 — 2026-10-25
 
 ### Added

@@ -7,6 +7,8 @@ public final class UpdateJobService extends JobService {
     private Thread thread;
     @Override public boolean onStartJob(JobParameters params) {
         thread = new Thread(() -> {
+            try { SelfUpdater.check(getApplicationContext(), true); }
+            catch (Exception e) { SelfUpdater.recordError(getApplicationContext(), e); }
             try { Updater.checkAndDownload(getApplicationContext(), message -> {}); }
             catch (Exception e) { Updater.recordError(getApplicationContext(), e); }
             finally { jobFinished(params, false); }

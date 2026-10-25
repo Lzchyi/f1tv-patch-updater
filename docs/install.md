@@ -1,13 +1,13 @@
 # Install on your TV
 
-Choose one method below. You only need to install the updater once; future F1 TV patch checks happen on the TV.
+Choose one method below. Install public version 0.3.1 or newer once; future F1 TV patch checks and public updater self-update checks happen on the TV.
 
 **[Download the latest updater](https://github.com/Lzchyi/f1tv-patch-updater/releases/latest)** · [Back to the main page](../README.md)
 
 ## Before you start
 
 - Use an **Android TV or Google TV device running Android 8.0 or newer**. This APK does not run on Samsung Tizen or LG webOS.
-- **F1 TV does not need to be installed first.** Version 0.3.0 offers to download it when it is missing. See [Need F1 TV as well?](#need-f1-tv-as-well).
+- **F1 TV does not need to be installed first.** The updater offers to download it when it is missing. See [Need F1 TV as well?](#need-f1-tv-as-well).
 - Watching requires your own valid F1 TV subscription; 4K requires the appropriate Premium entitlement where available. This independent hobby project is intended for personal use and provides no subscription or content. [Subscription details](https://f1help.formula1.com/article/F1-TV-subscription-comparison)
 - On the release page, expand **Assets** if needed. Download **`f1tv-patch-updater-<version>.apk`**. Ignore **Source code**; you do not need to build anything.
 
@@ -115,6 +115,8 @@ If the official F1 TV app is already installed, replacing it with the patch may 
 ## After installation
 
 Open the updater once. It checks the installed F1 TV version and the latest patch. When a newer patch is ready, choose **Install update** and follow Android's prompts. Allow this updater to install apps if Android asks. Future patch checks run on the TV; you do not need to leave debugging enabled or keep a computer connected.
+
+From **public v0.3.1**, a newer updater release also appears in an **Update the updater?** popup. Choose **Update now**, allow installation if asked and approve Android’s update prompt. **Later** leaves it alone; **Check for updates** can offer it again. No computer or transfer app is needed for those later public updater upgrades. Users on public 0.3.0 or earlier need this one-time manual upgrade first. Private personal builds continue to be installed locally.
 
 Installing through USB or a transfer app leaves your manually copied installer in its original folder. You may delete that copy after installing. The updater cleans up the patch files it downloads itself after successful installation.
 

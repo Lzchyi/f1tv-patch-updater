@@ -1,36 +1,50 @@
-# Validation
+# Tested environment and validation
 
-## 0.3.0
+## Proven TV environment
 
-All 25 host tests, personal/community builds and both edition lint checks passed. An isolated test target and locally served synthetic bundle on a physical Android TV exercised declined setup with no network request, digest mismatch rejection, approved download/restart reuse, changed-candidate recovery, Android cancellation/retry, and successful base-plus-two-split installation with cleanup. The final popup focus/navigation and production package display were checked separately.
+Tested on **25 October 2026**:
 
-The production build checked the actual upstream release against an existing F1 TV installation without downloading. Focus skipped unavailable actions, and both disclaimer lines stayed on screen. The user's actual F1 TV installation was preserved; a fresh installation of the real F1 TV bundle and playback on an empty TV were not exercised by the isolated test.
+| Item | Tested configuration |
+| :--- | :--- |
+| TV manufacturer | Sony |
+| Model reported by Android | BRAVIA VH1 |
+| Operating system | Android 12, API 31 |
+| CPU architecture | 32-bit ARM: `armeabi-v7a` / `armeabi` |
+| TV capture resolution | 1920 × 1080 |
+| Installed F1 TV patch | 3.0.50 (`3.0.50-SP168.9.0-release-R55-tv-UHD`) |
+| Updater editions | Original-logo personal build and temporary public-edition installations |
 
-## Previous 0.2.3
+**The updater works on this TV.** Readable F1 TV version detection, matching-build checks without an unnecessary APKM download, D-pad focus, the single-screen layout and disclaimer bounds were checked on the device. Updater upgrades preserved app data and left the installed F1 TV package unchanged. The owner also confirms working F1 TV playback.
 
-Twenty host tests cover the original update policy, release/build pre-checks, changed-asset invalidation, pending/recovery retention, interrupted/obsolete file cleanup, and symlink safety. Personal and signed community release builds and lint are checked separately. Physical diagnostics use a temporary community test installation; the personal app's data and F1 TV installation are preserved.
+This is a verified environment, rather than a promise that every Android TV device behaves identically. Playback is owner-reported; these updater tests do not measure the decoder's 4K resolution, HDR output or colour accuracy.
 
-## Previous 0.2.2
+## 0.3.1 self-update validation
 
-Local checks build the personal debug APK and the permanently signed community release APK, ran all five community host policy tests, and lint both editions. APK signatures and application IDs are checked separately. Physical TV checks cover launch, version/status display, one-screen bounds, focus navigation, footer visibility. Android’s install-source settings were inspected without changing permission.
+The host suite has **33 tests**, covering the original F1 TV policies plus public-release version comparison, exact asset selection, repository URL/size/SHA-256 checks, rejection of edition changes, changed signing keys and non-newer APKs.
 
-CI builds the community debug edition, runs its host policy tests, and lints it. CI debug artifacts are not public release APKs; the published APK is signed with the permanent community release identity.
+The physical-TV self-update tests use a separate updater package and a controlled feed. They exercise:
 
-## What the policy tests cover
+- Metadata-only startup and daily checks, with no automatic updater APK download.
+- Later surviving restart, with a manual check able to offer the update again.
+- Rejection of bad SHA-256, wrong signing keys, wrong app packages and old APKs; the installed updater stays in place.
+- Android cancellation keeping a verified APK for retry.
+- Retry using the same saved APK without another download.
+- Replacing the updater's own process in place and preserving its preferences.
+- Cleanup through the package-replaced receiver, including repeated completion callbacks.
+- Recognition of the newly installed version on the next check.
+- Independent self-update checks before F1 TV is installed, with manual setup still available after Later.
+- A one-time installation-permission handoff, returning from TV settings into the requested self-update, and cancellation with the candidate retained.
 
-- Same-key upgrades without removal.
-- SHA-256 requirements for changed-key releases.
-- First installs only with explicit setup approval and a verified upstream digest.
-- Recovery only with a previously verified, pinned replacement.
-- Rejection of downgrades, same-version reinstalls, and invalid versions.
+Personal and permanently signed public builds are checked separately. Only the public edition has a published self-update feed; personal builds retain their private branding and local installation workflow. Device connection details, private signing material and diagnostic logs are not published.
 
-## Separate device checks
+## Previously verified setup and recovery
 
-A successful build, download or UI check does not prove all installation/playback behavior on every TV. Keep these separate:
+The 0.3.0 first-install path was exercised on this same physical TV with a separate target and a synthetic bundle: declining setup caused no download; digest mismatches and altered saved files were rejected; approved downloads survived restart; Android cancellation could be retried; a base APK plus two splits installed successfully and the bundle was cleaned up. The real F1 TV installation was preserved throughout.
 
-- Same-key installation and preservation of login.
-- Cancellation of the fresh-install warning and Android removal confirmation.
-- User-authorized replacement, fresh login, interruption/restart after removal, and installation retry.
-- Reboot scheduling and independent 4K/HDR playback compatibility.
+The 0.2.3 checks verified interrupted-download/extraction cleanup, pending-candidate retention, obsolete-candidate removal and recovery after a simulated missed installer success callback. Host-test counts were 5 in 0.2.2, 20 in 0.2.3 and 25 in 0.3.0.
 
-No simulator was launched or tested. Device-specific diagnostic records are kept outside this public repository.
+## Build and CI checks
+
+CI builds the community debug edition, runs the host tests and lints it. Local release verification also checks the personal APK, the signed public APK, their application IDs and retained signing identities. CI debug artifacts are not the signed public release APK.
+
+No simulator was launched. Fresh installation of the actual F1 TV bundle on an empty TV, a newer upstream F1 TV upgrade beyond 3.0.50, reboot scheduling and other device models are outside the results recorded here. Additional successful physical-device reports can extend this record.
