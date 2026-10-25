@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/Android_TV-8.0%2B-30363d" alt="Android TV 8.0 or newer" />
     <a href="LICENSE"><img src="https://img.shields.io/badge/code-MIT-30363d" alt="Updater code: MIT" /></a>
   </p>
-  <p><a href="https://github.com/Lzchyi/f1tv-patch-updater/releases/latest"><strong>↓ Download the latest APK</strong></a> &nbsp; · &nbsp; <a href="docs/install.md">Easy installation guide</a> &nbsp; · &nbsp; <a href="#screenshots">Screenshots</a> &nbsp; · &nbsp; <a href="CHANGELOG.md">What’s new</a></p>
+  <p><a href="https://github.com/Lzchyi/f1tv-patch-updater/releases/latest"><strong>↓ Download the latest APK</strong></a> &nbsp; · &nbsp; <a href="docs/install.md">Easy installation guide</a> &nbsp; · &nbsp; <a href="docs/faq.md">FAQ &amp; troubleshooting</a> &nbsp; · &nbsp; <a href="#screenshots">Screenshots</a> &nbsp; · &nbsp; <a href="CHANGELOG.md">What’s new</a></p>
 </div>
 
 ![F1TV Patch Updater running on Android TV](docs/screenshots/overview.png)
