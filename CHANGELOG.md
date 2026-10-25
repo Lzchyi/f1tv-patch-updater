@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+- Added a beginner installation guide for phone transfers, USB sticks and Wi-Fi ADB, with a copyable prompt for an AI assistant running on the user's computer.
+- Added clear download choices, pairing versus legacy network debugging guidance, troubleshooting and the current requirement for an existing patched F1 TV installation.
+
 ## 0.2.3 — 2026-10-25
 
 ### Fixed
