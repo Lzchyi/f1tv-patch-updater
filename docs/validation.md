@@ -49,6 +49,16 @@ The 0.3.0 first-install path was exercised on this same physical TV with a separ
 
 The 0.2.3 checks verified interrupted-download/extraction cleanup, pending-candidate retention, obsolete-candidate removal and recovery after a simulated missed installer success callback. Host-test counts were 5 in 0.2.2, 20 in 0.2.3 and 25 in 0.3.0.
 
+## Community-reported compatibility
+
+The following is a community report, **not an independently verified device test**:
+
+| Device | Operating system | Reported result | Verification |
+| :--- | :--- | :--- | :--- |
+| Google-certified Android TV device (SEI804 series) | Android TV 14 | A community member reported successfully installing the latest available patched F1 TV release using F1TV Patch Updater. | User-reported; updater version, playback quality, 4K/HDR operation, and repeat-update behaviour not independently confirmed |
+
+Reported on 25 October 2026 in a community discussion. This report indicates a successful installation on another Android TV environment; it does **not** establish 4K/HDR playback compatibility or full support for every device in the SEI804 series.
+
 ## Build and CI checks
 
 CI builds the community debug edition, runs the host tests and lints it. Local release verification also checks the personal APK, the signed public APK, their application IDs and retained signing identities. CI debug artifacts are not the signed public release APK.
