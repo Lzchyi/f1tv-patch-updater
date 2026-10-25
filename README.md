@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/Android_TV-8.0%2B-30363d" alt="Android TV 8.0 or newer" />
     <a href="LICENSE"><img src="https://img.shields.io/badge/code-MIT-30363d" alt="Updater code: MIT" /></a>
   </p>
-  <p><a href="https://github.com/Lzchyi/f1tv-patch-updater/releases/latest"><strong>↓ Download the latest APK</strong></a> &nbsp; · &nbsp; <a href="#get-started">Get started</a> &nbsp; · &nbsp; <a href="#screenshots">Screenshots</a> &nbsp; · &nbsp; <a href="CHANGELOG.md">What’s new</a></p>
+  <p><a href="https://github.com/Lzchyi/f1tv-patch-updater/releases/latest"><strong>↓ Download the latest APK</strong></a> &nbsp; · &nbsp; <a href="docs/install.md">Easy installation guide</a> &nbsp; · &nbsp; <a href="#screenshots">Screenshots</a> &nbsp; · &nbsp; <a href="CHANGELOG.md">What’s new</a></p>
 </div>
 
 ![F1TV Patch Updater running on Android TV](docs/screenshots/overview.png)
@@ -24,9 +24,16 @@ No more moving every new update from your computer to your TV. The updater watch
 
 ## Get started
 
-**You’ll need Android TV 8.0 or newer and an existing installation of patched F1 TV.** For the first F1 TV installation, follow the [upstream setup instructions](https://github.com/Alexvbp/f1tv-4k-patch#installing-on-your-android-tv).
+**You’ll need Android TV 8.0 or newer and an existing installation of patched F1 TV.** [Need F1 TV as well?](docs/install.md#need-f1-tv-as-well)
 
-1. Download **`f1tv-patch-updater-0.2.3.apk`** from the [latest release](https://github.com/Lzchyi/f1tv-patch-updater/releases/latest) and install it on your TV once.
+**New to installing TV apps? Choose one route — no coding or building needed.**
+
+| From your phone | With a USB stick | Over Wi-Fi with AI help |
+| :--- | :--- | :--- |
+| Send the APK with Send Files to TV or LocalSend. | Copy the APK to a stick and open it on your TV. | Let an assistant on your computer handle ADB. |
+| [Phone transfer guide](docs/install.md#phone--tv) | [USB guide](docs/install.md#usb-stick) | [Wi-Fi guide + copyable AI prompt](docs/install.md#wi-fi-with-ai-help) |
+
+1. Download **`f1tv-patch-updater-<version>.apk`** from the [latest release](https://github.com/Lzchyi/f1tv-patch-updater/releases/latest) and install it using your chosen guide. Select the APK under **Assets**, not **Source code**.
 2. Open **F1TV Patch Updater**. When an update is ready, choose **Install update**. Android may ask you to allow this updater to install apps once.
 3. Confirm installation on your TV. After that, future patch checks and downloads happen on the TV—open the updater when you’re ready to install.
 
