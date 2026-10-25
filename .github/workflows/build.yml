@@ -1,4 +1,4 @@
-name: Build Android TV APK
+name: Check Android TV app
 on:
   workflow_dispatch:
   push:
@@ -24,10 +24,10 @@ jobs:
           gradle-version: '8.9'
       - name: Install Android API 35
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Build installable debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Build APK and run host checks
+        run: gradle --no-daemon assembleCommunityDebug testCommunityDebugUnitTest lintCommunityDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: f1tv-patch-updater-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: community-ci-debug-apk
+          path: app/build/outputs/apk/community/debug/app-community-debug.apk
           if-no-files-found: error

@@ -3,6 +3,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-feature android:name="android.software.leanback" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -12,8 +13,8 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:label="F1TV Patch Updater"
-        android:icon="@drawable/app_icon"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/tv_banner"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">

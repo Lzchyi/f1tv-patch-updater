@@ -1,0 +1,13 @@
+# F1TV Patch Updater
+
+- Native Android TV app in `app/src/main/java/com/independent/f1tvupdater`; no third-party runtime dependencies.
+- `Updater` owns releases, bounded APKM extraction, split selection, pinned candidate metadata and PackageInstaller sessions. `UpdatePolicy` contains host-testable decisions. `MainActivity` owns confirmation and Android uninstall requests.
+- Never uninstall F1 TV from a background job. Same-key updates preserve data; unrelated keys require the trusted upstream SHA-256, revalidated candidate, explicit data-loss/sign-in warning and Android confirmation. Only a pinned, user-initiated replacement may recover after removal.
+- Display readable versions; compare numeric version codes. Keep candidates through cancellation/failure. Never permit downgrades or arbitrary first installs.
+- Keep one TV screen, three horizontal actions and the red/white/chevron focus selector. Skip disabled actions; up/down stays in the row. Keep the short non-affiliation footer visible and credit Alexvbp in public documentation.
+- `community` has application ID suffix `.community` and uses the main branding resource. `personal` preserves the original app identity and uses an ignored local overlay at `app/src/personal/res/drawable-nodpi/tv_banner.png`. Do not publish that private overlay or the personal APK.
+- JDK 17, Gradle 8.9, Android API 35. CI: `gradle --no-daemon assembleCommunityDebug testCommunityDebugUnitTest lintCommunityDebug`. Personal local check: `assemblePersonalDebug lintPersonalDebug`.
+- Public release: `assembleCommunityRelease lintCommunityRelease`, with `UPDATER_KEYSTORE_FILE`, `UPDATER_KEYSTORE_PASSWORD`, `UPDATER_KEY_ALIAS`, `UPDATER_KEY_PASSWORD` supplied privately. Signing material is retained locally, not in Git. Never fall back to a temporary debug key for a public release. CI checks do not publish releases.
+- Public APKs and checksums go to GitHub Releases after checks pass. Keep README focused on downloads, usage, screenshots and credits; keep CHANGELOG current. Screenshot only the public edition for public docs, without device/account data.
+- No simulator tests or launches. Use host tests, static/build checks and an authorized physical-TV ADB connection. Destructive replacement needs explicit consent.
+- Never commit APKs, keystores, passwords, local SDK paths or device/app diagnostics. Licence covers updater code, not third-party branding or upstream software.
