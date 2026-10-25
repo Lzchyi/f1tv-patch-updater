@@ -51,13 +51,14 @@ The 0.2.3 checks verified interrupted-download/extraction cleanup, pending-candi
 
 ## Community-reported compatibility
 
-The following is a community report, **not an independently verified device test**:
+These are **community-reported results**, not independently verified device tests.
 
 | Device | Operating system | Reported result | Verification |
 | :--- | :--- | :--- | :--- |
-| Google-certified Android TV device (SEI804 series) | Android TV 14 | A community member reported successfully installing the latest available patched F1 TV release using F1TV Patch Updater. | User-reported; updater version, playback quality, 4K/HDR operation, and repeat-update behaviour not independently confirmed |
+| Google-certified Android TV device (SEI804 series) | Android TV 14 | Successfully installed the latest available patched F1 TV release using the updater. | Community-reported |
+| Onn 4K Pro | Android TV 14 (as reported) | Updater reported to be working fine. | Community-reported |
 
-Reported on 25 October 2026 in a community discussion. This report indicates a successful installation on another Android TV environment; it does **not** establish 4K/HDR playback compatibility or full support for every device in the SEI804 series.
+Both reports were received on 25 October 2026. The exact updater versions, repeat-update behaviour and independently measured 4K/HDR playback were not established. These reports are encouraging evidence of compatibility, not guarantees for all devices of the same model.
 
 ## Build and CI checks
 
