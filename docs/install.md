@@ -7,7 +7,8 @@ Choose one method below. You only need to install the updater once; future F1 TV
 ## Before you start
 
 - Use an **Android TV or Google TV device running Android 8.0 or newer**. This APK does not run on Samsung Tizen or LG webOS.
-- **The current release, 0.2.3, needs patched F1 TV already installed.** If you do not have it, see [Need F1 TV as well?](#need-f1-tv-as-well) first. First-time installation inside the updater is not available in this release.
+- **F1 TV does not need to be installed first.** Version 0.3.0 offers to download it when it is missing. See [Need F1 TV as well?](#need-f1-tv-as-well).
+- Watching requires your own valid F1 TV subscription; 4K requires the appropriate Premium entitlement where available. This independent hobby project is intended for personal use and provides no subscription or content. [Subscription details](https://f1help.formula1.com/article/F1-TV-subscription-comparison)
 - On the release page, expand **Assets** if needed. Download **`f1tv-patch-updater-<version>.apk`**. Ignore **Source code**; you do not need to build anything.
 
 ## Choose your method
@@ -85,7 +86,7 @@ Work through these steps for me, using your local terminal access:
 1. Read the current guide and release notes. Use existing ADB or get Android SDK Platform-Tools from Google's official site for my computer. I do not need Android Studio.
 2. Help me connect using the debugging mode my TV actually provides. For pairing, ask for the temporary pairing details when ready, then use the connection port shown on the main Wireless debugging screen. For legacy network ADB, use the displayed port; try 5555 only if the TV supports that mode and shows no port. Ask me to accept any TV authorization prompt. Do not assume every TV supports network ADB.
 3. Confirm the target device and direct every device command to that TV. Download the public updater APK and SHA256SUMS.txt from the same latest stable release in Lzchyi/f1tv-patch-updater. Verify the APK's SHA-256 and its application ID, com.independent.f1tvupdater.community. Stop on a mismatch.
-4. Install or update the updater in place, preserving its data. Never uninstall an app or clear its data to work around a signing conflict; explain it and ask first. Leave F1 TV and its login untouched. If patched F1 TV is missing, explain the current release's requirement and the upstream setup options before doing anything else.
+4. Install or update the updater in place, preserving its data. Never uninstall an app or clear its data to work around a signing conflict; explain it and ask first. Leave F1 TV and its login untouched. If F1 TV is missing, explain the updater's Download prompt and let me choose whether to start setup.
 5. Open the updater and verify the installed version and launch. Tell me about any TV prompts I need to approve. Explain how to turn debugging off when finished; the updater does not need ADB for normal use.
 
 Use short, plain-language instructions. If you cannot execute commands on my computer, say so and guide me or suggest the phone/USB method. Do not root the TV, disable security protections, expose ADB through my router, or publish my connection details or device logs.
@@ -99,9 +100,15 @@ After installation, turn off the debugging options you enabled. You can also for
 
 ## Need F1 TV as well?
 
-The updater APK and the F1 TV patch are two different downloads. Version 0.2.3 updates an existing patched F1 TV installation; it does not install F1 TV onto an empty TV.
+Install the updater using any method above, then open it. If F1 TV is missing, it asks **Download F1 TV?**
 
-For the initial F1 TV installation, follow **[Alexvbp's setup guide](https://github.com/Alexvbp/f1tv-4k-patch#installing-on-your-android-tv)**. Its `f1tv-uhd-patched.apkm` is a bundle, so use the upstream ADB method or its split-installer instructions. You can transfer that bundle by phone or USB too, but opening it as an ordinary APK will not install the complete app. Do not rename `.apkm` to `.apk`.
+1. Choose **Download** to fetch Alexvbp's latest stable patch. **Not now** leaves it alone; choose **Check for updates** when you want to start later.
+2. Wait until the download is ready, then choose **Install update**. Allow installation for this updater if Android asks, return to it, and choose **Install update** again.
+3. Approve Android's installation prompt, then choose **Open F1 TV** and sign in with your own account.
+
+The updater handles the `.apkm` bundle directly, so **no AntiSplit-M or separate installer is needed**. Saved downloads stay available if you cancel or restart, and are removed after successful installation. Background checks do not start the first download without your choice.
+
+For manual installation instead, use **[Alexvbp's setup guide](https://github.com/Alexvbp/f1tv-4k-patch#installing-on-your-android-tv)**. Its `.apkm` bundle is different from this updater's `.apk`; do not rename one to the other. Older updater releases through 0.2.3 require an existing patched F1 TV installation.
 
 If the official F1 TV app is already installed, replacing it with the patch may require removal and will clear its login and local settings. Review the upstream instructions before proceeding.
 

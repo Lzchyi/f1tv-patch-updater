@@ -33,4 +33,36 @@ public class UpdatePolicyTest {
         assertThrows(SecurityException.class,
                 () -> UpdatePolicy.assess(0, -1, false, true, true));
     }
+    @Test public void explicitSetupAllowsOnlyADigestVerifiedFirstInstall() {
+        assertEquals(UpdatePolicy.Action.INSTALL,
+                UpdatePolicy.assess(30500001, -1, false, true, false, true));
+        assertThrows(SecurityException.class,
+                () -> UpdatePolicy.assess(30500001, -1, false, false, false, true));
+    }
+    @Test public void backgroundChecksCannotAuthorizeAFirstInstall() {
+        assertThrows(SecurityException.class,
+                () -> UpdatePolicy.assess(30500001, -1, true, true, false, false));
+    }
+    @Test public void setupConsentDoesNotBypassExistingInstallationPolicy() {
+        assertThrows(SecurityException.class,
+                () -> UpdatePolicy.assess(30500001, 30500001, true, true, false, true));
+        assertThrows(SecurityException.class,
+                () -> UpdatePolicy.assess(30500000, 30500001, true, true, false, true));
+        assertThrows(SecurityException.class,
+                () -> UpdatePolicy.assess(30500002, 30500001, false, false, false, true));
+        assertEquals(UpdatePolicy.Action.REPLACE,
+                UpdatePolicy.assess(30500002, 30500001, false, true, false, true));
+        assertEquals(UpdatePolicy.Action.UPDATE,
+                UpdatePolicy.assess(30500002, 30500001, true, true, false, true));
+    }
+    @Test public void pinnedReplacementRecoveryRemainsDistinctFromSetup() {
+        assertEquals(UpdatePolicy.Action.RECOVER,
+                UpdatePolicy.assess(30500001, -1, false, true, true, true));
+    }
+    @Test public void setupConsentCannotAuthorizeAnInvalidVersion() {
+        assertThrows(SecurityException.class,
+                () -> UpdatePolicy.assess(0, -1, false, true, false, true));
+        assertThrows(SecurityException.class,
+                () -> UpdatePolicy.assess(-1, -1, false, true, false, true));
+    }
 }
