@@ -14,7 +14,7 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:label="F1TV Patch Updater"
-        android:icon="@drawable/app_icon"
+        android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/tv_banner"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="18%" android:insetRight="18%"
+    android:insetTop="31.9904%" android:insetBottom="31.9904%">
+    <bitmap android:src="@drawable/tv_banner" android:gravity="fill" />
+</inset>

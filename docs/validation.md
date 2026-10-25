@@ -1,6 +1,11 @@
-# Validation for 0.2.0
+# Validation
 
-## Host checks
+## 0.2.1 UI update
+
+The current single-screen UI builds and passes local lint with no errors. The update/download policy is unchanged. Physical UI checks cover visible screen bounds, absence of scroll containers, and the high-contrast focused/unfocused button states. The complete replacement flow and UHD playback remain separate checks.
+
+## Previous 0.2.0 host checks
+
 
 `gradle --no-daemon assembleDebug testDebugUnitTest lintDebug` passed locally with JDK 17, Gradle 8.9 and Android API 35.
 

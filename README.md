@@ -2,11 +2,12 @@
 
 An independent Android TV updater for the **already-installed, patched** F1 TV app from [Alexvbp/f1tv-4k-patch](https://github.com/Alexvbp/f1tv-4k-patch). This project does **not** patch F1 TV, bypass DRM, or include F1 TV binaries.
 
-**Version 0.2.0:** native Android TV updater with readable installed versions, ordinary in-place updates, and an explicit replacement flow when an upstream signing key changes. Build, host tests, lint, installation, and UHD playback are separate checks; see [validation notes](docs/validation.md) for host checks and remaining device tests.
+**Version 0.2.1:** one-screen Android TV updater with clear remote focus, simple wording, readable installed versions, ordinary in-place updates, and an explicit replacement flow when an upstream signing key changes. Build, host tests, lint, installation, and UHD playback are separate checks; see [validation notes](docs/validation.md) for host checks and remaining device tests.
 
 ## Implemented in source
 
-- Native leanback Android TV launcher, remote-focused button UI (Java; no third-party runtime libraries).
+- Native leanback Android TV launcher with a single-screen layout, three horizontal actions, obvious red/white remote focus, and D-pad navigation that skips unavailable actions (Java; no third-party runtime libraries).
+- Simple status messages and the supplied logo in the TV banner and adaptive launcher icon. Sign-in/data-loss warnings remain explicit when a fresh install is needed.
 - Android JobScheduler daily stable GitHub release check, with unmetered network constraint; an immediate check on first launch and manual checks.
 - Automatic download of the upstream `f1tv-uhd-patched.apkm` bundle.
 - Bounded ZIP extraction with traversal prevention and archive-size limits.
