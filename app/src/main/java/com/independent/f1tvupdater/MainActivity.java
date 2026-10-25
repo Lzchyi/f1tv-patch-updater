@@ -34,6 +34,7 @@ public final class MainActivity extends Activity {
     private Button install;
     private Button check;
     private Button open;
+    private Button updaterChecks;
     private boolean busy;
     private boolean setupPromptOpen;
     private boolean selfPromptOpen;
@@ -69,6 +70,22 @@ public final class MainActivity extends Activity {
         daily.setPadding(dp(16), dp(9), dp(16), dp(9));
         daily.setBackground(panel(0xff14181d, 24, 0xff41474f));
         header.addView(daily);
+        updaterChecks = button("", v -> {
+            boolean enabled = !SelfUpdater.automaticChecksEnabled(this);
+            SelfUpdater.setAutomaticChecksEnabled(this, enabled);
+            render();
+            Toast.makeText(this, enabled ? "Automatic updater checks on."
+                    : "Automatic updater checks off. Manual checks still work.", Toast.LENGTH_LONG).show();
+        });
+        updaterChecks.setTextSize(13);
+        updaterChecks.setTypeface(Typeface.DEFAULT, Typeface.NORMAL);
+        updaterChecks.setMaxLines(1);
+        updaterChecks.setPadding(dp(12), dp(6), dp(12), dp(6));
+        updaterChecks.setBackgroundResource(R.drawable.tv_pill);
+        updaterChecks.setTextColor(getColorStateList(R.color.tv_pill_text));
+        LinearLayout.LayoutParams updaterChecksSize = new LinearLayout.LayoutParams(dp(184), dp(36));
+        updaterChecksSize.leftMargin = dp(10);
+        header.addView(updaterChecks, updaterChecksSize);
         LinearLayout.LayoutParams headerSize = new LinearLayout.LayoutParams(-1, dp(compact ? 56 : 64));
         headerSize.bottomMargin = dp(compact ? 14 : 20);
         root.addView(header, headerSize);
@@ -135,15 +152,24 @@ public final class MainActivity extends Activity {
         check.setNextFocusLeftId(check.getId());
         open.setNextFocusRightId(open.getId());
         for (Button action : new Button[] {check, install, open}) {
-            action.setNextFocusUpId(action.getId());
             action.setNextFocusDownId(action.getId());
         }
+        updaterChecks.setNextFocusLeftId(updaterChecks.getId());
+        updaterChecks.setNextFocusRightId(updaterChecks.getId());
+        updaterChecks.setNextFocusUpId(updaterChecks.getId());
+        updaterChecks.setNextFocusDownId(check.getId());
 
         LinearLayout footer = new LinearLayout(this);
-        footer.setGravity(Gravity.CENTER_VERTICAL);
+        footer.setBaselineAligned(false);
+        footer.setGravity(Gravity.BOTTOM);
         TextView disclaimer = text(getString(R.string.disclaimer), 12, 0xff9ba4b0);
         disclaimer.setMaxLines(2);
-        footer.addView(disclaimer, new LinearLayout.LayoutParams(-1, -2));
+        footer.addView(disclaimer, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView updaterVersion = text(SelfUpdater.installedName(this), 12, 0xff9ba4b0);
+        updaterVersion.setGravity(Gravity.END);
+        LinearLayout.LayoutParams updaterVersionSize = new LinearLayout.LayoutParams(-2, -2);
+        updaterVersionSize.leftMargin = dp(24);
+        footer.addView(updaterVersion, updaterVersionSize);
         LinearLayout.LayoutParams footerSize = new LinearLayout.LayoutParams(-1, dp(36));
         footerSize.topMargin = dp(compact ? 12 : 18);
         root.addView(footer, footerSize);
@@ -156,7 +182,7 @@ public final class MainActivity extends Activity {
         if (Updater.installedVersion(this) >= 0 &&
                 !Updater.prefs(this).getBoolean("first_check_started", false)) {
             Updater.prefs(this).edit().putBoolean("first_check_started", true).apply();
-            checkNow();
+            runCheck(false, false);
         }
     }
 
@@ -300,6 +326,16 @@ public final class MainActivity extends Activity {
                 !state.equals("Waiting for Android installation confirmation") &&
                 !state.equals("Awaiting installation confirmation"));
         open.setEnabled(Updater.installedVersion(this) >= 0);
+        boolean publicEdition = SelfUpdater.supported(this);
+        boolean automaticChecks = SelfUpdater.automaticChecksEnabled(this);
+        updaterChecks.setText(publicEdition ? "Updater checks " + (automaticChecks ? "on" : "off")
+                : "Updater: local");
+        updaterChecks.setContentDescription(publicEdition
+                ? "Automatic updater checks " + (automaticChecks ? "on. Select to turn off." : "off. Select to turn on.")
+                : "Personal updater updates are installed locally.");
+        updaterChecks.setEnabled(publicEdition && !busy && !selfPending);
+        for (Button action : new Button[] {check, install, open})
+            action.setNextFocusUpId(updaterChecks.isEnabled() ? updaterChecks.getId() : action.getId());
         check.setNextFocusRightId(install.isEnabled() ? install.getId()
                 : open.isEnabled() ? open.getId() : check.getId());
         install.setNextFocusRightId(open.isEnabled() ? open.getId() : install.getId());
@@ -307,7 +343,7 @@ public final class MainActivity extends Activity {
     }
     private void checkNow() {
         if (busy) return;
-        runCheck(false);
+        runCheck(false, true);
     }
 
     private void offerSetup(boolean requested) {
@@ -322,7 +358,7 @@ public final class MainActivity extends Activity {
                 .setTitle(R.string.setup_title)
                 .setMessage(R.string.setup_message)
                 .setNegativeButton("Not now", null)
-                .setPositiveButton("Download", (dialog, which) -> runCheck(true))
+                .setPositiveButton("Download", (dialog, which) -> runCheck(true, false))
                 .setOnDismissListener(dialog -> { setupPromptOpen = false; render(); })
                 .create();
         setup.setOnShowListener(dialog -> {
@@ -337,14 +373,14 @@ public final class MainActivity extends Activity {
         setup.show();
     }
 
-    private void runCheck(boolean initialSetup) {
+    private void runCheck(boolean initialSetup, boolean requested) {
         if (busy) return;
         busy = true;
         render();
         show("Checking for updates…");
         io.execute(() -> {
             boolean selfCheckFailed = false;
-            try { SelfUpdater.check(getApplicationContext(), true); }
+            try { SelfUpdater.check(getApplicationContext(), requested); }
             catch (Exception e) { SelfUpdater.recordError(getApplicationContext(), e); selfCheckFailed = true; }
             final boolean updaterCheckFailed = selfCheckFailed;
             try {
@@ -358,9 +394,9 @@ public final class MainActivity extends Activity {
                     busy = false;
                     if (!isDestroyed()) {
                         render();
-                        boolean offered = offerSelfUpdate(true);
-                        if (!offered && !initialSetup) offerSetup(true);
-                        if (visible && updaterCheckFailed && !offered)
+                        boolean offered = offerSelfUpdate(requested);
+                        if (!offered && !initialSetup) offerSetup(requested);
+                        if (requested && visible && updaterCheckFailed && !offered)
                             Toast.makeText(this, "The updater check couldn’t finish. Try again later.", Toast.LENGTH_LONG).show();
                     }
                 });

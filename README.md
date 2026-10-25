@@ -39,16 +39,16 @@ No more moving every new update from your computer to your TV. The updater watch
 
 The updater installs the upstream bundle directly. **No AntiSplit-M or separate split installer is needed.** After setup, future patch checks and downloads happen on the TV; you choose when to install.
 
-**Already using public 0.3.0 or earlier?** Install 0.3.1 once using the guide. After that, newer public updater releases are detected on the TV: choose **Update now** and approve Android’s prompt. **Older personal/prototype builds** have a separate identity and install alongside the public edition; private personal builds continue to be updated locally.
+**Already using public 0.3.0 or earlier?** Install the latest release once using the guide. After that, newer public updater releases are detected on the TV: choose **Update now** and approve Android’s prompt. **Older personal/prototype builds** have a separate identity and install alongside the public edition; private personal builds continue to be updated locally.
 
 ## Screenshots
 
 Actual captures of the public edition running on Android TV.
 
-| Ready at a glance | Easy to navigate |
+| Ready at a glance | Updater checks you control |
 | :---: | :---: |
-| ![Readable installed and latest versions](docs/screenshots/overview.png) | ![High-contrast remote selection](docs/screenshots/remote-focus.png) |
-| Your installed version and the latest release, together. | Clear focus, large controls, and no scrolling. |
+| ![Readable installed and latest versions](docs/screenshots/overview.png) | ![Updater automatic checks turned off](docs/screenshots/updater-checks.png) |
+| Your installed version and the latest release, together. | Press Up to turn automatic updater checks on or off. |
 
 ![Optional first-time setup](docs/screenshots/setup.png)
 
@@ -57,6 +57,10 @@ Actual captures of the public edition running on Android TV.
 ![Updater self-update prompt](docs/screenshots/self-update.png)
 
 <sub>Updater self-update prompt captured on the Sony TV with a temporary test build. Public users need 0.3.1 or newer before later updater releases can be detected automatically.</sub>
+
+<sub>The overview and updater-check captures show 0.3.1.1 on the physical TV using an isolated updater test package, with the real F1 TV installation intact.</sub>
+
+The updater version appears at the bottom right. From **0.3.1.1**, press **Up** to reach **Updater checks on/off** beside **Daily checks on**. Switch it off to stop automatic updater checks and popups; manual **Check for updates** still works, and daily F1 TV patch checks continue.
 
 ## A few useful things to know
 

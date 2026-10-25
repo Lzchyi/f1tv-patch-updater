@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1.1 — 2026-10-25
+
+- Show the installed updater version at the bottom right, matching the disclaimer font, size and colour.
+- Add a remote-accessible **Updater checks on/off** pill beside **Daily checks on** in the public edition. The setting persists across restarts and disables automatic updater metadata checks and popups. Manual updater checks and daily F1 TV patch checks remain available.
+- Keep the personal edition local with its original logo and an **Updater: local** indicator.
+- Use Android version code 9 so public 0.3.1 can update to this release directly on the TV.
+
 ## 0.3.1 — 2026-10-25
 
 ### Added

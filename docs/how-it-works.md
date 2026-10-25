@@ -13,6 +13,8 @@
 
 The public edition checks `Lzchyi/f1tv-patch-updater/releases/latest` on opening, manual checks and the daily job. Version metadata is checked before downloading. A newer stable release is offered through a separate popup, keeping the three F1 TV actions unchanged. Later dismisses automatic prompting for that exact asset; a manual check can offer it again.
 
+From 0.3.1.1, the persisted **Updater checks on/off** setting gates automatic startup/daily metadata requests and automatic offers, including cached offers. Manual checks bypass that setting. F1 TV patch scheduling is independent. The first automatic F1 TV check also respects this setting for its accompanying updater check. Personal builds show **Updater: local**.
+
 Only Update now starts the updater APK download and installation. The expected public APK filename and repository URL, a bounded size, GitHub SHA-256, exact application ID, higher Android version code, matching release version and the currently installed signing certificate must all match. A self-update never switches editions, permits a downgrade or removes the updater.
 
 Self-update preferences, APK files and callback action are separate from the F1 TV update path. Android must approve installation. Verified files survive cancellation for retry; partial or completed files are removed. `MY_PACKAGE_REPLACED` and startup reconciliation recover cleanup when replacing our own process loses the installer callback. Personal builds remain private/local and have no public self-update feed.

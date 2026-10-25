@@ -50,6 +50,12 @@ An available patch is not silently installed: Android installation confirmation 
 
 Users on **public v0.3.0 or earlier** need to install v0.3.1 once before this feature is available. The private personal edition keeps its original branding and local distribution; there is no public matching personal APK for it to fetch.
 
+### Can I turn automatic updater updates off?
+
+From **v0.3.1.1**, press **Up** from the main buttons and select **Updater checks on** at the top right. It changes to **Updater checks off** and remembers your choice. This stops automatic updater checks on opening and in the daily job, including automatic update popups. **Check for updates** still checks manually. F1 TV patch checks and downloads keep their existing daily schedule.
+
+The updater never installs itself automatically: **Update now** and Android confirmation are always required. The personal edition shows **Updater: local**, because its APK is not published. The installed updater version is shown at the bottom right.
+
 ### What if updating the updater is interrupted or cancelled?
 
 A verified updater APK is kept for retry. Use **Check for updates**, choose **Update now** again, and approve Android's prompt. The app revalidates the file and signing identity before retrying. Completed and partial updater downloads are cleaned up separately from F1 TV patch files, including recovery after the updater replaces its own process.

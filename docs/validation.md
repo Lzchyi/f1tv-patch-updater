@@ -18,6 +18,12 @@ Tested on **25 October 2026**:
 
 This is a verified environment, rather than a promise that every Android TV device behaves identically. Playback is owner-reported; these updater tests do not measure the decoder's 4K resolution, HDR output or colour accuracy.
 
+## 0.3.1.1 controls and version display
+
+An isolated updater package on the same TV verified that **Updater checks off** persists across restart, skips updater metadata requests in both startup paths and the forced daily job, and suppresses a cached automatic offer. **Check for updates** still fetched metadata and offered the newer release while off; re-enabling restored automatic detection. Daily F1 TV checks remained active, and no updater APK was downloaded by these checks.
+
+D-pad Up reaches the new pill and Down returns to the main actions. The installed **0.3.1.1** version is visible at the bottom right, with the disclaimer's font, size and colour. The screen remains a single page. The real F1 TV and personal updater installations were preserved. The numeric-version host checks also cover the four-part release name.
+
 ## 0.3.1 self-update validation
 
 The host suite has **33 tests**, covering the original F1 TV policies plus public-release version comparison, exact asset selection, repository URL/size/SHA-256 checks, rejection of edition changes, changed signing keys and non-newer APKs.

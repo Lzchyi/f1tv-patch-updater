@@ -29,6 +29,12 @@ public final class SelfUpdater {
         return c.getApplicationContext().getSharedPreferences("self_update_state_v1", Context.MODE_PRIVATE);
     }
     static boolean supported(Context c) { return SelfUpdatePolicy.COMMUNITY.equals(c.getPackageName()); }
+    static boolean automaticChecksEnabled(Context c) {
+        return prefs(c).getBoolean("automatic_checks", true);
+    }
+    static void setAutomaticChecksEnabled(Context c, boolean enabled) {
+        prefs(c).edit().putBoolean("automatic_checks", enabled).remove("last_attempt").apply();
+    }
     private static PackageInfo own(Context c) throws Exception {
         return c.getPackageManager().getPackageInfo(c.getPackageName(), Updater.signatureFlags());
     }
@@ -45,8 +51,8 @@ public final class SelfUpdater {
     static boolean pending(Context c) { return prefs(c).getInt("session_id", -1) >= 0; }
     static void dismiss(Context c) { prefs(c).edit().putString("dismissed_key", offerKey(c)).apply(); }
     static boolean shouldOffer(Context c, boolean requested) {
-        return available(c) && !pending(c) && (requested ||
-                !offerKey(c).equals(prefs(c).getString("dismissed_key", "")));
+        return available(c) && !pending(c) && (requested || (automaticChecksEnabled(c) &&
+                !offerKey(c).equals(prefs(c).getString("dismissed_key", ""))));
     }
     static String state(Context c) { return prefs(c).getString("state", "Preparing updater update"); }
     static void setState(Context c, String state) { prefs(c).edit().putString("state", state).apply(); }
@@ -104,6 +110,7 @@ public final class SelfUpdater {
         if (!supported(c)) return; // Personal builds remain local, with no published matching APK.
         synchronized (LOCK) {
             reconcile(c);
+            if (!requested && !automaticChecksEnabled(c)) return;
             if (pending(c)) return;
             long now = System.currentTimeMillis(), last = prefs(c).getLong("last_attempt", 0);
             if (!requested && now >= last && now - last < 5 * 60_000L) return;

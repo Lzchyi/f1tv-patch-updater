@@ -118,6 +118,8 @@ Open the updater once. It checks the installed F1 TV version and the latest patc
 
 From **public v0.3.1**, a newer updater release also appears in an **Update the updater?** popup. Choose **Update now**, allow installation if asked and approve Android’s update prompt. **Later** leaves it alone; **Check for updates** can offer it again. No computer or transfer app is needed for those later public updater upgrades. Users on public 0.3.0 or earlier need this one-time manual upgrade first. Private personal builds continue to be installed locally.
 
+From **v0.3.1.1**, use **Up** to select **Updater checks on/off** beside **Daily checks on**. Off stops automatic updater checks and popups while keeping manual checks and daily F1 TV patch checks available. The updater version is shown at the bottom right.
+
 Installing through USB or a transfer app leaves your manually copied installer in its original folder. You may delete that copy after installing. The updater cleans up the patch files it downloads itself after successful installation.
 
 ## Stuck?

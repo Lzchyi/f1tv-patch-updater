@@ -12,12 +12,16 @@ public class SelfUpdatePolicyTest {
     @Test public void onlyThePublicEditionHasAPublishedUpdateAsset() {
         assertEquals(NAME, SelfUpdatePolicy.assetName(PACKAGE, "v0.3.1"));
         assertEquals(NAME, SelfUpdatePolicy.assetName(PACKAGE, "0.3.1"));
+        assertEquals("f1tv-patch-updater-0.3.1.1.apk", SelfUpdatePolicy.assetName(PACKAGE, "v0.3.1.1"));
         assertNull(SelfUpdatePolicy.assetName("com.independent.f1tvupdater", "v0.3.1"));
         assertNull(SelfUpdatePolicy.assetName(PACKAGE, "v0.3.1-beta"));
     }
     @Test public void comparesVersionsNumericallyAndSkipsCurrentOrOlderReleases() {
         assertTrue(SelfUpdatePolicy.newerRelease("0.3.9", "v0.3.10"));
         assertTrue(SelfUpdatePolicy.newerRelease("0.3.10", "v0.4.0"));
+        assertTrue(SelfUpdatePolicy.newerRelease("0.3.1", "v0.3.1.1"));
+        assertTrue(SelfUpdatePolicy.newerRelease("0.3.1.1", "v0.3.1.2"));
+        assertFalse(SelfUpdatePolicy.newerRelease("0.3.1.1", "v0.3.1"));
         assertFalse(SelfUpdatePolicy.newerRelease("0.3.1", "v0.3.1"));
         assertFalse(SelfUpdatePolicy.newerRelease("0.3.1", "v0.3.0"));
         assertFalse(SelfUpdatePolicy.newerRelease("0.3", "v0.3.0"));
