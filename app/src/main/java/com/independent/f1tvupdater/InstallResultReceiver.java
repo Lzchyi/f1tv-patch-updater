@@ -31,27 +31,13 @@ public final class InstallResultReceiver extends BroadcastReceiver {
             return;
         }
         if (status == PackageInstaller.STATUS_SUCCESS) {
-            long targetVersion = Updater.prefs(context).getLong("installing_version", -1);
-            long actual = Updater.installedVersion(context);
-            if (actual != targetVersion || targetVersion < 0) {
-                Updater.setState(context, "Installer reported success, but installed version differs. Verify manually.");
-                return;
-            }
-            Updater.prefs(context).edit()
-                    .putLong("installed_release_id", Updater.prefs(context).getLong("installing_release_id", -1))
-                    .putLong("installed_version", actual)
-                    .remove("installing_release_id")
-                    .remove("installing_version")
-                    .putString("state", "Installed successfully")
-                    .putString("last_error", "")
-                    .apply();
-            Updater.cleanupCandidate(context);
+            Updater.installationSucceeded(context);
             return;
         }
         String error = result.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
         Updater.setState(context, "Installation did not finish. Download is saved; retry installation.");
         Updater.prefs(context).edit()
-                .remove("installing_release_id").remove("installing_version")
+                .remove("installing_release_id").remove("installing_version").remove("installing_session_id")
                 .putString("last_error", "Code " + status + ": " +
                 (error == null ? "Android installer rejected installation" : error)).apply();
         Log.w("F1TVUpdater", "Package installer failed code=" + status);

@@ -1,8 +1,10 @@
 # F1TV Patch Updater
 
 - Native Android TV app in `app/src/main/java/com/independent/f1tvupdater`; no third-party runtime dependencies.
-- `Updater` owns releases, bounded APKM extraction, split selection, pinned candidate metadata and PackageInstaller sessions. `UpdatePolicy` contains host-testable decisions. `MainActivity` owns confirmation and Android uninstall requests.
+- `Updater` owns releases, bounded APKM extraction, split selection, pinned candidate metadata and PackageInstaller sessions. `UpdatePolicy` and `ReleaseCheckPolicy` contain host-testable decisions; `UpdateFiles` owns narrowly scoped staging cleanup. `MainActivity` owns confirmation and Android uninstall requests.
 - Never uninstall F1 TV from a background job. Same-key updates preserve data; unrelated keys require the trusted upstream SHA-256, revalidated candidate, explicit data-loss/sign-in warning and Android confirmation. Only a pinned, user-initiated replacement may recover after removal.
+- Check full readable version/build metadata before downloading; uncertain metadata falls back to APK verification. Cache non-newer results by release asset and installed-package identity; invalidate replaced assets. Keep numeric APK version checks authoritative.
+- Run resume/startup cleanup off the UI thread under the same operation lock. Delete only updater-owned staging/extraction names, never follow symlinks, preserve valid pending/recovery candidates and active/sealed installer sessions, and make successful-install recovery idempotent.
 - Display readable versions; compare numeric version codes. Keep candidates through cancellation/failure. Never permit downgrades or arbitrary first installs.
 - Keep one TV screen, three horizontal actions and the red/white/chevron focus selector. Skip disabled actions; up/down stays in the row. Keep the short non-affiliation footer visible and credit Alexvbp in public documentation.
 - `community` has application ID suffix `.community` and uses the main branding resource. `personal` preserves the original app identity and uses an ignored local overlay at `app/src/personal/res/drawable-nodpi/tv_banner.png`. Do not publish that private overlay or the personal APK.

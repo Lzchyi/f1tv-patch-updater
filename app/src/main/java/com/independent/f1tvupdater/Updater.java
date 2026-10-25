@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -89,13 +90,107 @@ public final class Updater {
                 !prefs(c).getString("candidate_sha256", "").isEmpty() &&
                 prefs(c).getLong("candidate_version", -1) > installedVersion(c);
     }
-    public static void cleanupCandidate(Context c) {
-        candidate(c).delete();
+    private static void clearCandidateMetadata(Context c) {
         prefs(c).edit().remove("candidate_version").remove("candidate_release_id")
+                .remove("candidate_asset_key")
                 .remove("candidate_sha256").remove("candidate_signer")
                 .remove("candidate_digest_verified").remove("candidate_replacement")
                 .remove("candidate_original_version").remove("candidate_original_signer")
                 .remove("replacement_pending").apply();
+    }
+
+    private static boolean waitingForInstaller(String state) {
+        return state.equals("Waiting for Android installation confirmation") ||
+                state.equals("Awaiting installation confirmation");
+    }
+
+    /** Runs off the UI thread. The same lock protects live downloads and installation staging. */
+    public static void reconcile(Context context) throws Exception {
+        Context c = context.getApplicationContext();
+        synchronized (LOCK) {
+            boolean pending = false;
+            PackageInstaller installer = c.getPackageManager().getPackageInstaller();
+            for (PackageInstaller.SessionInfo session : installer.getMySessions()) {
+                if (!TARGET.equals(session.getAppPackageName())) continue;
+                if (session.isSealed() || session.isActive()) pending = true;
+                else {
+                    // An uncommitted session left by a dead process cannot finish by itself.
+                    try { installer.abandonSession(session.getSessionId()); }
+                    catch (IllegalStateException ignored) { /* It finished between the queries. */ }
+                }
+            }
+            long actual = installedVersion(c);
+            long cachedVersion = prefs(c).getLong("candidate_version", -1);
+            boolean keep = pending || ReleaseCheckPolicy.keepCandidate(cachedVersion, actual,
+                    candidate(c).isFile(), !prefs(c).getString("candidate_sha256", "").isEmpty());
+            UpdateFiles.cleanup(c.getFilesDir(), c.getCacheDir(), !keep);
+            prefs(c).edit().remove("cleanup_pending").apply();
+            if (pending) return;
+            boolean obsolete = candidate(c).isFile() || cachedVersion > 0;
+            String state = prefs(c).getString("state", "");
+            long installing = prefs(c).getLong("installing_version", -1);
+            if (installing > 0 && actual == installing) {
+                installationSucceeded(c);
+                return;
+            }
+            if (!keep) clearCandidateMetadata(c);
+            prefs(c).edit().remove("installing_release_id").remove("installing_version")
+                    .remove("installing_session_id").apply();
+            if (ReleaseCheckPolicy.interruptedState(state) || waitingForInstaller(state) ||
+                    (!keep && obsolete)) {
+                prefs(c).edit().putString("state", ready(c) ? readyState(c) : "Ready to check")
+                        .putString("last_error", "").apply();
+            }
+        }
+    }
+
+    public static void installationSucceeded(Context c) {
+        synchronized (LOCK) {
+            long expected = prefs(c).getLong("installing_version", -1);
+            long actual = installedVersion(c);
+            if (expected < 0 && actual > 0 && prefs(c).getLong("installed_version", -1) == actual)
+                return; // Startup recovery may have completed this success before the callback arrived.
+            if (expected < 0 || actual != expected) {
+                setState(c, "Installer reported success, but installed version differs. Verify manually.");
+                return;
+            }
+            prefs(c).edit()
+                    .putLong("installed_release_id", prefs(c).getLong("installing_release_id", -1))
+                    .putLong("installed_version", actual)
+                    .remove("installing_release_id").remove("installing_version")
+                    .remove("installing_session_id")
+                    .putString("state", "Installed successfully").putString("last_error", "").apply();
+            try {
+                boolean keep = ReleaseCheckPolicy.keepCandidate(prefs(c).getLong("candidate_version", -1),
+                        actual, candidate(c).isFile(), !prefs(c).getString("candidate_sha256", "").isEmpty());
+                UpdateFiles.cleanup(c.getFilesDir(), c.getCacheDir(), !keep);
+                if (!keep) clearCandidateMetadata(c);
+                prefs(c).edit().remove("cleanup_pending").apply();
+            } catch (IOException e) {
+                // Installation succeeded; retry file cleanup on the next launch/check.
+                prefs(c).edit().putBoolean("cleanup_pending", true).apply();
+                android.util.Log.w("F1TVUpdater", "Post-install cleanup will retry", e);
+            }
+        }
+    }
+
+    private static boolean matchesCheckedInstallation(Context c, PackageInfo installed) {
+        return prefs(c).getLong("checked_version", -1) == version(installed) &&
+                prefs(c).getLong("checked_update_time", -1) == installed.lastUpdateTime &&
+                prefs(c).getString("checked_version_name", "").equals(
+                        installed.versionName == null ? "" : installed.versionName);
+    }
+
+    private static void rememberCurrent(Context c, PackageInfo installed, long releaseId,
+                                        String assetKey, String tag) throws IOException {
+        if (!prefs(c).edit().putLong("checked_release_id", releaseId)
+                .putString("checked_asset_key", assetKey)
+                .putLong("checked_version", version(installed))
+                .putLong("checked_update_time", installed.lastUpdateTime)
+                .putString("checked_version_name", installed.versionName == null ? "" : installed.versionName)
+                .putString("candidate_tag", tag).putString("last_error", "")
+                .putString("state", "Up to date (checked release)").commit())
+            throw new IOException("Cannot save update check result");
     }
     public static void schedule(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
@@ -113,9 +208,9 @@ public final class Updater {
     public static void checkAndDownload(Context context, Progress progress) throws Exception {
         Context c = context.getApplicationContext();
         synchronized (LOCK) {
+            reconcile(c);
             String current = prefs(c).getString("state", "");
-            if (current.equals("Waiting for Android installation confirmation") ||
-                    current.equals("Awaiting installation confirmation")) {
+            if (waitingForInstaller(current)) {
                 progress.report("An installation is pending; update check deferred");
                 return;
             }
@@ -144,21 +239,6 @@ public final class Updater {
                 }
             }
             if (asset == null) throw new Exception("No f1tv-uhd-patched.apkm asset in latest stable release");
-            if (releaseId == prefs(c).getLong("installed_release_id", -1) &&
-                    installedVersion(c) == prefs(c).getLong("installed_version", -1)) {
-                setState(c, "Up to date (last installed release)");
-                prefs(c).edit().putString("last_error", "").apply();
-                progress.report("Current patched release is already installed");
-                return;
-            }
-            if (ready(c) && releaseId == prefs(c).getLong("candidate_release_id", -1) &&
-                    installedVersion(c) == prefs(c).getLong("candidate_original_version", -1) &&
-                    prefs(c).getString("candidate_original_signer", "").equals(signer(
-                            c.getPackageManager().getPackageInfo(TARGET, signatureFlags())))) {
-                setState(c, readyState(c));
-                progress.report("Previously downloaded update ready for installation");
-                return;
-            }
             String url = asset.getString("browser_download_url");
             if (!url.startsWith("https://github.com/Alexvbp/f1tv-4k-patch/releases/download/"))
                 throw new SecurityException("Unexpected GitHub release asset URL");
@@ -168,6 +248,31 @@ public final class Updater {
             if ("null".equalsIgnoreCase(digest)) digest = "";
             if (!digest.isEmpty() && !digest.matches("(?i)sha256:[0-9a-f]{64}"))
                 throw new SecurityException("Unsupported or malformed release digest");
+            String assetKey = releaseId + ":" + asset.getLong("id") + ":" + size + ":" +
+                    digest + ":" + asset.optString("updated_at", "");
+            PackageInfo before = c.getPackageManager().getPackageInfo(TARGET, signatureFlags());
+            boolean sameInstallation = matchesCheckedInstallation(c, before);
+            boolean sameRelease = prefs(c).getLong("checked_release_id", -1) == releaseId;
+            String checkedAsset = prefs(c).getString("checked_asset_key", "");
+            boolean changedAsset = sameRelease && !checkedAsset.isEmpty() && !checkedAsset.equals(assetKey);
+            if (ReleaseCheckPolicy.canSkipDownload(before.versionName, tag, release.optString("name", ""),
+                    sameInstallation && sameRelease && checkedAsset.equals(assetKey), changedAsset)) {
+                rememberCurrent(c, before, releaseId, assetKey, tag);
+                progress.report("Current patched release is already installed");
+                return;
+            }
+            boolean matchingCandidateAsset = assetKey.equals(prefs(c).getString("candidate_asset_key", "")) ||
+                    (!digest.isEmpty() && digest.equalsIgnoreCase("sha256:" +
+                            prefs(c).getString("candidate_sha256", "")));
+            if (ready(c) && matchingCandidateAsset &&
+                    releaseId == prefs(c).getLong("candidate_release_id", -1) &&
+                    version(before) == prefs(c).getLong("candidate_original_version", -1) &&
+                    prefs(c).getString("candidate_original_signer", "").equals(signer(before))) {
+                prefs(c).edit().putString("candidate_asset_key", assetKey)
+                        .putString("last_error", "").putString("state", readyState(c)).apply();
+                progress.report("Previously downloaded update ready for installation");
+                return;
+            }
 
             File tmp = new File(c.getFilesDir(), "downloading.apkm");
             tmp.delete();
@@ -186,8 +291,7 @@ public final class Updater {
                     existing = c.getPackageManager().getPackageInfo(TARGET, signatureFlags());
                     long installed = version(existing);
                     if (bundle.version <= installed) {
-                        setState(c, "No newer Android package version available");
-                        prefs(c).edit().putString("candidate_tag", tag).putString("last_error", "").apply();
+                        rememberCurrent(c, existing, releaseId, assetKey, tag);
                         progress.report("No newer compatible Android app version");
                         return;
                     }
@@ -200,6 +304,7 @@ public final class Updater {
                 if (!tmp.renameTo(completed)) throw new Exception("Cannot store verified update");
                 if (!prefs(c).edit()
                         .putLong("candidate_release_id", releaseId)
+                        .putString("candidate_asset_key", assetKey)
                         .putLong("candidate_version", bundle.version)
                         .putString("candidate_name", bundle.base.versionName)
                         .putString("candidate_sha256", computed)
@@ -208,6 +313,9 @@ public final class Updater {
                         .putBoolean("candidate_replacement", action == UpdatePolicy.Action.REPLACE)
                         .putLong("candidate_original_version", version(existing))
                         .putString("candidate_original_signer", signer(existing))
+                        .putLong("checked_release_id", releaseId)
+                        .putString("checked_asset_key", assetKey)
+                        .remove("checked_version").remove("checked_update_time").remove("checked_version_name")
                         .remove("replacement_pending")
                         .putString("candidate_tag", tag)
                         .putString("last_error", "")
@@ -301,10 +409,9 @@ public final class Updater {
         void clean() { deleteTree(directory); }
     }
     private static void deleteTree(File f) {
-        if (f == null || !f.exists()) return;
-        File[] list = f.listFiles();
-        if (list != null) for (File child : list) deleteTree(child);
-        f.delete();
+        if (f == null) return;
+        try { UpdateFiles.removeTree(f); }
+        catch (IOException e) { android.util.Log.w("F1TVUpdater", "Temporary cleanup will retry", e); }
     }
 
     /** Zip extraction stays entirely inside app-private storage. */
@@ -559,6 +666,7 @@ public final class Updater {
     public static void install(Context context) throws Exception {
         Context c = context.getApplicationContext();
         synchronized (LOCK) {
+            reconcile(c);
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls())
                 throw new SecurityException("Grant Install unknown apps permission first");
             Bundle bundle = verifiedCandidate(c);
@@ -589,6 +697,7 @@ public final class Updater {
                     if (Build.VERSION.SDK_INT >= 31) flags |= PendingIntent.FLAG_MUTABLE;
                     PendingIntent pi = PendingIntent.getBroadcast(c, 1001, callback, flags);
                     prefs(c).edit()
+                            .putInt("installing_session_id", id)
                             .putLong("installing_release_id", prefs(c).getLong("candidate_release_id", -1))
                             .putLong("installing_version", bundle.version)
                             .putString("state", "Waiting for Android installation confirmation")
@@ -598,7 +707,8 @@ public final class Updater {
                 } finally {
                     if (!submitted) {
                         installer.abandonSession(id);
-                        prefs(c).edit().remove("installing_release_id").remove("installing_version").apply();
+                        prefs(c).edit().remove("installing_release_id").remove("installing_version")
+                                .remove("installing_session_id").apply();
                     }
                 }
             } finally { bundle.clean(); }
