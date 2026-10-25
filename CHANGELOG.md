@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.3 — 2026-10-25
+
+### Fixed
+- Check installed and upstream version/build metadata before downloading the full patch bundle.
+- Remember verified “already current” results, including the release asset and installed app identity, so repeated checks do not re-download the same bundle.
+- Recheck replaced release assets rather than trusting an old cached result.
+- Remove interrupted downloads, abandoned extraction folders, and bundles made obsolete by an installation outside the updater.
+- Reset stale “Downloading” and “Verifying” states after an interrupted process.
+- Recover successful installation cleanup when a callback was missed, while preserving valid pending/recovery bundles and active Android confirmation sessions.
+
+### Validation
+- Regression coverage for version decisions, candidate retention, narrowly scoped file cleanup and symbolic-link safety.
+
 ## 0.2.2 — 2026-10-25
 
 The first packaged public release.

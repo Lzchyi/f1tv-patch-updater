@@ -375,7 +375,16 @@ public final class MainActivity extends Activity {
             render();
         }
     }
-    @Override public void onResume() { super.onResume(); if (status != null) render(); }
+    @Override public void onResume() {
+        super.onResume();
+        if (status == null) return;
+        render();
+        io.execute(() -> {
+            try { Updater.reconcile(getApplicationContext()); }
+            catch (Exception e) { Updater.recordError(getApplicationContext(), e); }
+            runOnUiThread(() -> { if (!isDestroyed()) render(); });
+        });
+    }
     @Override public void onDestroy() {
         Updater.prefs(this).unregisterOnSharedPreferenceChangeListener(stateChanged);
         io.shutdown();

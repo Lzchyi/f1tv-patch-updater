@@ -20,13 +20,13 @@ No more moving every new update from your computer to your TV. The updater watch
 
 | Checks for you | Made for the remote | You stay in control |
 | :--- | :--- | :--- |
-| Daily checks on an unmetered connection, plus a manual check whenever you want. | One screen, three large actions, and a bright red selection with a white outline. | Android asks before installing. A fresh install always needs your confirmation. |
+| Checks versions first. Downloads only when needed, with daily and manual checks. | One screen, three large actions, and a bright red selection with a white outline. | Android asks before installing. A fresh install always needs your confirmation. |
 
 ## Get started
 
 **You’ll need Android TV 8.0 or newer and an existing installation of patched F1 TV.** For the first F1 TV installation, follow the [upstream setup instructions](https://github.com/Alexvbp/f1tv-4k-patch#installing-on-your-android-tv).
 
-1. Download **`f1tv-patch-updater-0.2.2.apk`** from the [latest release](https://github.com/Lzchyi/f1tv-patch-updater/releases/latest) and install it on your TV once.
+1. Download **`f1tv-patch-updater-0.2.3.apk`** from the [latest release](https://github.com/Lzchyi/f1tv-patch-updater/releases/latest) and install it on your TV once.
 2. Open **F1TV Patch Updater**. When an update is ready, choose **Install update**. Android may ask you to allow this updater to install apps once.
 3. Confirm installation on your TV. After that, future patch checks and downloads happen on the TV—open the updater when you’re ready to install.
 
@@ -41,9 +41,7 @@ Actual captures of the public edition running on Android TV.
 | ![Readable installed and latest versions](docs/screenshots/overview.png) | ![High-contrast remote selection](docs/screenshots/remote-focus.png) |
 | Your installed version and the latest release, together. | Clear focus, large controls, and no scrolling. |
 
-![The updater downloads releases directly on the TV](docs/screenshots/downloading.png)
-
-<sub>Downloads happen directly on the TV. Installation waits for you.</sub>
+<sub>Version 0.2.3 checks the release before downloading and removes completed or interrupted update files automatically.</sub>
 
 ## A few useful things to know
 
