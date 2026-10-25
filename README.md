@@ -16,7 +16,7 @@
 
 ## A small app for a simpler routine
 
-No more moving every new update from your computer to your TV. The updater watches the latest stable release from [Alexvbp/f1tv-4k-patch](https://github.com/Alexvbp/f1tv-4k-patch), downloads it directly, and lets you choose when to install.
+No more moving every new update from your computer to your TV. The updater watches the latest stable release from [Alexvbp/f1tv-4k-patch](https://github.com/Alexvbp/f1tv-4k-patch), downloads it directly, and lets you choose when to install. **From 0.3.1, the public edition also detects newer updater releases from this repository and offers to update itself on the TV.**
 
 | Checks for you | Made for the remote | You stay in control |
 | :--- | :--- | :--- |
@@ -24,7 +24,7 @@ No more moving every new update from your computer to your TV. The updater watch
 
 ## Get started
 
-**You’ll need Android TV 8.0 or newer.** Version 0.3.0 can also set up F1 TV if it is not installed. Watching requires your own valid F1 TV subscription; 4K requires the appropriate Premium entitlement where available. [Subscription details](https://f1help.formula1.com/article/F1-TV-subscription-comparison)
+**You’ll need Android TV 8.0 or newer.** The updater can also set up F1 TV if it is not installed. Watching requires your own valid F1 TV subscription; 4K requires the appropriate Premium entitlement where available. [Subscription details](https://f1help.formula1.com/article/F1-TV-subscription-comparison)
 
 **New to installing TV apps? Choose one route — no coding or building needed.**
 
@@ -39,7 +39,7 @@ No more moving every new update from your computer to your TV. The updater watch
 
 The updater installs the upstream bundle directly. **No AntiSplit-M or separate split installer is needed.** After setup, future patch checks and downloads happen on the TV; you choose when to install.
 
-**Already using an older personal/prototype build?** This public edition installs separately. Future public releases use the same signing identity so the updater itself can be upgraded in place.
+**Already using public 0.3.0 or earlier?** Install 0.3.1 once using the guide. After that, newer public updater releases are detected on the TV: choose **Update now** and approve Android’s prompt. **Older personal/prototype builds** have a separate identity and install alongside the public edition; private personal builds continue to be updated locally.
 
 ## Screenshots
 
@@ -54,12 +54,20 @@ Actual captures of the public edition running on Android TV.
 
 <sub>The setup prompt was captured on a physical TV using an isolated test target. Version 0.3.0 keeps the same three-button screen, adds optional first-time setup, checks versions before downloading and cleans up installed bundles automatically.</sub>
 
+![Updater self-update prompt](docs/screenshots/self-update.png)
+
+<sub>Updater self-update prompt captured on the Sony TV with a temporary test build. Public users need 0.3.1 or newer before later updater releases can be detected automatically.</sub>
+
 ## A few useful things to know
 
 - **This is the updater, not the 4K patch.** The patch is Alexvbp’s work. This project doesn’t include F1 TV APKs, provide a subscription, or guarantee 4K playback on every device.
 - **Some updates need a fresh install.** If an upstream signing key changes, Android cannot update the existing app normally. The updater explains this before removal. Continuing clears F1 TV’s sign-in and local settings; you’ll need to sign in again.
 - **Daily checks are best-effort.** Android may delay background work while the TV sleeps. You can always select **Check for updates** yourself.
-- **Updating this companion app is separate.** Download a newer updater APK from this repository’s Releases. Automatic checks inside the app are for the upstream F1 TV patch.
+- **Both update paths stay on the TV.** The public edition checks Alexvbp’s F1 TV patch and this repository’s updater releases. New updater versions appear in an **Update the updater?** popup. **Update now** downloads and verifies the APK, then asks Android to install; **Later** leaves it for another manual check. These checks run when you open the app, through **Check for updates**, and in the daily background job. Background checks never install an updater update.
+
+## Tested on a real TV
+
+**Sony BRAVIA VH1 · Android 12 (API 31) · 32-bit ARM (`armeabi-v7a`)**. Version detection, matching-build download avoidance, remote navigation, installation/retry and cleanup have been exercised on this TV. Patched F1 TV **3.0.50** is installed, and the owner reports working playback. This is a tested environment, rather than a claim that every Android TV device or every 4K/HDR path is verified. [See the test results and their scope](docs/validation.md).
 
 More detail: [How updates work](docs/how-it-works.md) · [Validation and limitations](docs/validation.md) · [Changelog](CHANGELOG.md)
 

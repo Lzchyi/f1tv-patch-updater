@@ -9,6 +9,14 @@
 
 “Already current” results are remembered against the release asset ID, digest/size/update timestamp and the installed app's code, name and last-update time. A replaced asset invalidates the old result and is inspected again. Downloaded APK version codes remain authoritative; readable names are a conservative pre-check only.
 
+## Updating this updater
+
+The public edition checks `Lzchyi/f1tv-patch-updater/releases/latest` on opening, manual checks and the daily job. Version metadata is checked before downloading. A newer stable release is offered through a separate popup, keeping the three F1 TV actions unchanged. Later dismisses automatic prompting for that exact asset; a manual check can offer it again.
+
+Only Update now starts the updater APK download and installation. The expected public APK filename and repository URL, a bounded size, GitHub SHA-256, exact application ID, higher Android version code, matching release version and the currently installed signing certificate must all match. A self-update never switches editions, permits a downgrade or removes the updater.
+
+Self-update preferences, APK files and callback action are separate from the F1 TV update path. Android must approve installation. Verified files survive cancellation for retry; partial or completed files are removed. `MY_PACKAGE_REPLACED` and startup reconciliation recover cleanup when replacing our own process loses the installer callback. Personal builds remain private/local and have no public self-update feed.
+
 ## File cleanup
 
 After confirmed installation, the downloaded bundle and extracted APKs are deleted. Startup/resume and background checks also remove interrupted `downloading.apkm` files, abandoned extraction folders, and obsolete candidates after an external installation. Valid newer candidates stay available for retry and for recovery after user-confirmed removal.

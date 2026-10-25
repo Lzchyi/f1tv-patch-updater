@@ -8,7 +8,7 @@ A quick guide to **F1TV Patch Updater**, an independent Android TV companion for
 
 ### What does this app actually do?
 
-It checks for newer stable releases of Alexvbp's patched F1 TV app, downloads compatible installation files onto your Android TV or Google TV, and guides you through installation. You no longer need to move each upstream update from a computer to your TV.
+It checks for newer stable releases of Alexvbp's patched F1 TV app, downloads compatible installation files onto your Android TV or Google TV, and guides you through installation. From **v0.3.1**, the public edition also detects new releases of the updater itself and offers an in-place update on the TV. You no longer need to move each upstream update from a computer to your TV.
 
 **This app is an updater, not a video player or a 4K patch.** The patch itself is maintained by [Alexvbp](https://github.com/Alexvbp/f1tv-4k-patch).
 
@@ -20,11 +20,11 @@ It checks for newer stable releases of Alexvbp's patched F1 TV app, downloads co
 
 You need a way to install the updater APK **once**. The [installation guide](install.md) covers phone transfer, USB and optional ADB over Wi-Fi. After that, routine F1 TV patch checks, downloads and installations run directly on the TV. **No AntiSplit-M or separate APKM installer is required.**
 
-ADB is not required for normal use. If you enabled debugging just for installation, you can turn it off afterward.
+ADB is not required for normal use. From public **v0.3.1**, future updater releases can also be installed directly on the TV. If you enabled debugging just for installation, you can turn it off afterward.
 
 ### Which devices are supported?
 
-The app targets **Android TV and Google TV running Android 8.0 (API 26) or newer**. Not every manufacturer, Android version, architecture, launcher or TV box has been tested.
+The app targets **Android TV and Google TV running Android 8.0 (API 26) or newer**. **Tested environment:** Sony BRAVIA VH1, Android 12 (API 31), 32-bit ARM (`armeabi-v7a`), with patched F1 TV 3.0.50. App detection, no unnecessary download, remote controls, installation/retry and cleanup were exercised on that TV; the owner reports working playback. [Detailed results](validation.md). Other manufacturers, Android versions and TV boxes need their own compatibility reports.
 
 It does **not** run on Samsung Tizen or LG webOS. Compatibility with Fire TV or other Android-derived devices is not guaranteed.
 
@@ -44,9 +44,17 @@ An available patch is not silently installed: Android installation confirmation 
 
 ### Does the updater update itself?
 
-**Not in v0.3.0.** The automatic check currently concerns the **upstream F1 TV patch**, not this companion app.
+**Yes, in the public edition starting with v0.3.1.** It checks this repository's latest stable release when opened, during **Check for updates**, and through the daily background job. When a newer version is available, an **Update the updater?** popup offers **Update now** or **Later**.
 
-To update the companion app, install a newer public APK from [this repository's Releases](https://github.com/Lzchyi/f1tv-patch-updater/releases/latest). A self-update feature is planned for v0.3.1, but do not assume it is available until it appears in a published release.
+**Update now** downloads the updater APK, verifies its SHA-256, package, version and signing identity, and opens Android's update confirmation. F1 TV and its sign-in stay in place. **Later** suppresses the automatic popup for that release; **Check for updates** can offer it again. Background checks do not launch installation.
+
+Users on **public v0.3.0 or earlier** need to install v0.3.1 once before this feature is available. The private personal edition keeps its original branding and local distribution; there is no public matching personal APK for it to fetch.
+
+### What if updating the updater is interrupted or cancelled?
+
+A verified updater APK is kept for retry. Use **Check for updates**, choose **Update now** again, and approve Android's prompt. The app revalidates the file and signing identity before retrying. Completed and partial updater downloads are cleaned up separately from F1 TV patch files, including recovery after the updater replaces its own process.
+
+If a self-update cannot be verified or uses a different signing key, the installed updater is kept. The updater never uninstalls itself to bypass a signing conflict.
 
 ### What's the difference between the updater APK and the upstream APKM?
 

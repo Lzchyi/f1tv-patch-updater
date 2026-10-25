@@ -83,7 +83,7 @@ public final class Updater {
         try { return c.getPackageManager().getPackageInfo(TARGET, signatureFlags()); }
         catch (PackageManager.NameNotFoundException e) { return null; }
     }
-    private static long version(PackageInfo info) {
+    static long version(PackageInfo info) {
         return Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode;
     }
     private static File candidate(Context c) {
@@ -361,7 +361,7 @@ public final class Updater {
         }
     }
 
-    private static String readSmall(String target, String accept, int limit) throws Exception {
+    static String readSmall(String target, String accept, int limit) throws Exception {
         HttpURLConnection c = open(target, accept);
         try (InputStream stream = c.getInputStream()) {
             byte[] buf = new byte[8192];
@@ -400,6 +400,9 @@ public final class Updater {
         return conn;
     }
     private static String download(String url, File output, long advertisedSize) throws Exception {
+        return download(url, output, advertisedSize, MAX_BUNDLE_BYTES);
+    }
+    static String download(String url, File output, long advertisedSize, long maximumBytes) throws Exception {
         long available = new StatFs(output.getParent()).getAvailableBytes();
         long minimum = (advertisedSize > 0 ? advertisedSize : 200L * 1024 * 1024) + 64L * 1024 * 1024;
         if (available < minimum) throw new Exception("Insufficient free storage for APKM download");
@@ -413,7 +416,7 @@ public final class Updater {
             while ((n = in.read(buf)) != -1) {
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException("Download interrupted");
                 received += n;
-                if (received > MAX_BUNDLE_BYTES) throw new SecurityException("Download exceeds size limit");
+                if (received > maximumBytes) throw new SecurityException("Download exceeds size limit");
                 out.write(buf, 0, n);
                 digest.update(buf, 0, n);
             }
@@ -511,11 +514,11 @@ public final class Updater {
             return new Bundle(dir, chosen, base, baseSigner);
         } catch (Exception e) { deleteTree(dir); throw e; }
     }
-    private static int signatureFlags() {
+    static int signatureFlags() {
         return Build.VERSION.SDK_INT >= 28 ?
                 PackageManager.GET_SIGNING_CERTIFICATES : PackageManager.GET_SIGNATURES;
     }
-    private static String signer(PackageInfo pkg) throws Exception {
+    static String signer(PackageInfo pkg) throws Exception {
         Signature[] signatures;
         if (Build.VERSION.SDK_INT >= 28 && pkg.signingInfo != null) {
             signatures = pkg.signingInfo.getApkContentsSigners();
@@ -542,7 +545,7 @@ public final class Updater {
         return false;
     }
 
-    private static String fileDigest(File file) throws Exception {
+    static String fileDigest(File file) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         try (InputStream in = new FileInputStream(file)) {
             byte[] buffer = new byte[65536];

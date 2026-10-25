@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,6 +36,10 @@ public final class MainActivity extends Activity {
     private Button open;
     private boolean busy;
     private boolean setupPromptOpen;
+    private boolean selfPromptOpen;
+    private boolean replacementPromptOpen;
+    private boolean selfUpdating;
+    private boolean visible;
     private static final int REMOVE_F1 = 42;
     private final SharedPreferences.OnSharedPreferenceChangeListener stateChanged =
             (prefs, key) -> runOnUiThread(() -> { if (!isDestroyed()) render(); });
@@ -144,6 +149,7 @@ public final class MainActivity extends Activity {
         root.addView(footer, footerSize);
         check.requestFocus();
         Updater.prefs(this).registerOnSharedPreferenceChangeListener(stateChanged);
+        SelfUpdater.prefs(this).registerOnSharedPreferenceChangeListener(stateChanged);
         Updater.schedule(this);
         render();
         // First use should trigger a check without waiting a day.
@@ -282,9 +288,15 @@ public final class MainActivity extends Activity {
         installed.setText(shortVersion(Updater.installedVersionName(this)));
         latest.setText(shortVersion(Updater.prefs(this).getString("candidate_tag", "")));
         String state = Updater.prefs(this).getString("state", "No checks yet");
-        show(state);
-        check.setEnabled(!busy);
-        install.setEnabled(!busy && Updater.ready(this) &&
+        boolean selfPending = SelfUpdater.pending(this);
+        if (selfUpdating || selfPending) {
+            badge.setText("UPDATER UPDATE");
+            heading.setText(selfPending ? "Approve the updater update" : "Updating the updater");
+            status.setText(SelfUpdater.state(this));
+            notice.setText("Your F1 TV app and sign-in stay in place.");
+        } else show(state);
+        check.setEnabled(!busy && !selfPending);
+        install.setEnabled(!busy && !selfPending && Updater.ready(this) &&
                 !state.equals("Waiting for Android installation confirmation") &&
                 !state.equals("Awaiting installation confirmation"));
         open.setEnabled(Updater.installedVersion(this) >= 0);
@@ -295,15 +307,13 @@ public final class MainActivity extends Activity {
     }
     private void checkNow() {
         if (busy) return;
-        if (Updater.installedVersion(this) < 0 && !Updater.ready(this)) {
-            offerSetup(true);
-            return;
-        }
         runCheck(false);
     }
 
     private void offerSetup(boolean requested) {
-        if (busy || setupPromptOpen || isFinishing() || isDestroyed() ||
+        if (!visible || busy || setupPromptOpen || selfPromptOpen || replacementPromptOpen ||
+                SelfUpdater.pending(this) || isFinishing() || isDestroyed() ||
+                SelfUpdater.prefs(this).getBoolean("permission_pending", false) ||
                 Updater.installedVersion(this) >= 0 || Updater.ready(this)) return;
         if (!requested && Updater.prefs(this).getBoolean("setup_prompt_shown", false)) return;
         Updater.prefs(this).edit().putBoolean("setup_prompt_shown", true).apply();
@@ -333,6 +343,10 @@ public final class MainActivity extends Activity {
         render();
         show("Checking for updates…");
         io.execute(() -> {
+            boolean selfCheckFailed = false;
+            try { SelfUpdater.check(getApplicationContext(), true); }
+            catch (Exception e) { SelfUpdater.recordError(getApplicationContext(), e); selfCheckFailed = true; }
+            final boolean updaterCheckFailed = selfCheckFailed;
             try {
                 Updater.Progress progress = message -> runOnUiThread(() -> { if (!isDestroyed()) show(message); });
                 if (initialSetup) Updater.downloadInitial(getApplicationContext(), progress);
@@ -340,7 +354,16 @@ public final class MainActivity extends Activity {
             } catch (Exception e) {
                 Updater.recordError(getApplicationContext(), e);
             } finally {
-                runOnUiThread(() -> { busy = false; if (!isDestroyed()) render(); });
+                runOnUiThread(() -> {
+                    busy = false;
+                    if (!isDestroyed()) {
+                        render();
+                        boolean offered = offerSelfUpdate(true);
+                        if (!offered && !initialSetup) offerSetup(true);
+                        if (visible && updaterCheckFailed && !offered)
+                            Toast.makeText(this, "The updater check couldn’t finish. Try again later.", Toast.LENGTH_LONG).show();
+                    }
+                });
             }
         });
     }
@@ -373,6 +396,7 @@ public final class MainActivity extends Activity {
 
     private void confirmReplacement() {
         if (isFinishing() || isDestroyed()) return;
+        replacementPromptOpen = true;
         new AlertDialog.Builder(this)
                 .setTitle("Install F1 TV again?")
                 .setMessage("This update needs a fresh install. Removing F1 TV clears your sign-in " +
@@ -382,7 +406,69 @@ public final class MainActivity extends Activity {
                         "and choose Install update.")
                 .setNegativeButton("Keep current version", null)
                 .setPositiveButton("Continue", (dialog, which) -> removeForReplacement())
+                .setOnDismissListener(dialog -> replacementPromptOpen = false)
                 .show();
+    }
+
+    private boolean offerSelfUpdate(boolean requested) {
+        if (selfPromptOpen) return true;
+        if (!visible || busy || setupPromptOpen || replacementPromptOpen || isFinishing() || isDestroyed() ||
+                !SelfUpdater.shouldOffer(this, requested)) return false;
+        SelfUpdater.dismiss(this); // Offer automatically once per release; manual checks can offer it again.
+        selfPromptOpen = true;
+        AlertDialog update = new AlertDialog.Builder(this)
+                .setTitle("Update the updater?")
+                .setMessage("F1TV Patch Updater " + SelfUpdater.latestName(this) + " is available.\n\n" +
+                        "You’re using " + SelfUpdater.installedName(this) + ". Update it directly on your TV.\n\n" +
+                        "Your F1 TV app and sign-in stay in place. Android will ask you to approve.")
+                .setNegativeButton("Later", null)
+                .setPositiveButton("Update now", (dialog, which) -> updateUpdater())
+                .setOnDismissListener(dialog -> { selfPromptOpen = false; render(); offerSetup(requested); })
+                .create();
+        update.setOnShowListener(dialog -> {
+            for (int which : new int[] {AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_POSITIVE}) {
+                Button action = update.getButton(which);
+                styleButton(action);
+                action.setMinWidth(dp(150));
+                action.setMinHeight(dp(56));
+            }
+            update.getButton(AlertDialog.BUTTON_POSITIVE).requestFocus();
+        });
+        update.show();
+        return true;
+    }
+
+    private void updateUpdater() {
+        if (busy || SelfUpdater.pending(this) || !SelfUpdater.available(this)) return;
+        if (!getPackageManager().canRequestPackageInstalls()) {
+            SelfUpdater.prefs(this).edit().putBoolean("permission_pending", true).apply();
+            startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:" + getPackageName())));
+            return;
+        }
+        busy = true;
+        selfUpdating = true;
+        render();
+        io.execute(() -> {
+            try { SelfUpdater.install(getApplicationContext(), message -> runOnUiThread(() -> {
+                if (!isDestroyed()) render();
+            })); }
+            catch (Exception e) {
+                SelfUpdater.recordError(getApplicationContext(), e);
+                runOnUiThread(() -> {
+                    if (!isDestroyed()) new AlertDialog.Builder(this)
+                            .setTitle("Couldn’t update the updater")
+                            .setMessage("The update could not be completed or verified. Your existing app is kept. " +
+                                    "Choose Check for updates to try again.")
+                            .setPositiveButton("OK", null).show();
+                });
+            } finally {
+                runOnUiThread(() -> {
+                    busy = false; selfUpdating = false;
+                    if (!isDestroyed()) render();
+                });
+            }
+        });
     }
 
     private void removeForReplacement() {
@@ -421,18 +507,38 @@ public final class MainActivity extends Activity {
     }
     @Override public void onResume() {
         super.onResume();
+        visible = true;
         if (status == null) return;
         render();
         io.execute(() -> {
             try { Updater.reconcile(getApplicationContext()); }
             catch (Exception e) { Updater.recordError(getApplicationContext(), e); }
+            try { SelfUpdater.reconcile(getApplicationContext()); SelfUpdater.check(getApplicationContext(), false); }
+            catch (Exception e) { SelfUpdater.recordError(getApplicationContext(), e); }
             runOnUiThread(() -> {
-                if (!isDestroyed()) { render(); offerSetup(false); }
+                if (!isDestroyed()) {
+                    render();
+                    if (SelfUpdater.prefs(this).getBoolean("show_success", false)) {
+                        SelfUpdater.prefs(this).edit().putBoolean("show_success", false).apply();
+                        Toast.makeText(this, "Updater updated to " + SelfUpdater.installedName(this), Toast.LENGTH_LONG).show();
+                    }
+                    if (visible && SelfUpdater.prefs(this).getBoolean("permission_pending", false)) {
+                        SelfUpdater.prefs(this).edit().remove("permission_pending").apply();
+                        if (getPackageManager().canRequestPackageInstalls()) updateUpdater();
+                        else Toast.makeText(this, "Installation permission is still off. Check for updates to try again.", Toast.LENGTH_LONG).show();
+                    }
+                    if (!offerSelfUpdate(false)) offerSetup(false);
+                }
             });
         });
     }
+    @Override public void onPause() {
+        visible = false;
+        super.onPause();
+    }
     @Override public void onDestroy() {
         Updater.prefs(this).unregisterOnSharedPreferenceChangeListener(stateChanged);
+        SelfUpdater.prefs(this).unregisterOnSharedPreferenceChangeListener(stateChanged);
         io.shutdown();
         super.onDestroy();
     }
