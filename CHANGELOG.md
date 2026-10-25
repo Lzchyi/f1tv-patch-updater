@@ -1,10 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-25
+
+### Added
+- First-time setup through a simple “Download F1 TV?” prompt, retaining Check for updates, Install update and Open F1 TV.
+- Direct installation of Alexvbp's APKM bundle, with no AntiSplit-M or separate installer required.
+- Explicit approval for the initial download, mandatory GitHub SHA-256 verification and approval pinned to the saved candidate for retries.
+- A short personal-use and valid-subscription notice inside the app, plus subscription requirements and upstream terms in the public documentation.
+
+### Behaviour
+- Not now dismisses automatic setup; Check for updates can offer it again.
+- Saved setup/recovery downloads are reused. Background checks never start a first-time download.
+- Open F1 TV is unavailable while F1 TV is missing, and remote focus skips unavailable actions.
+- Existing update, signing-key replacement, Android confirmation and automatic cleanup policies remain in place.
 
 ### Documentation
 - Added a beginner installation guide for phone transfers, USB sticks and Wi-Fi ADB, with a copyable prompt for an AI assistant running on the user's computer.
-- Added clear download choices, pairing versus legacy network debugging guidance, troubleshooting and the current requirement for an existing patched F1 TV installation.
+- Added clear download choices, pairing versus legacy network debugging guidance, troubleshooting and first-time setup steps.
 
 ## 0.2.3 — 2026-10-25
 

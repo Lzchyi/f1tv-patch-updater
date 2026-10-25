@@ -15,11 +15,19 @@ After confirmed installation, the downloaded bundle and extracted APKs are delet
 
 Maintenance shares the download/install lock, runs off the UI thread, and never follows symlinks during deletion. It preserves sealed/active Android installer sessions, abandons only inactive uncommitted sessions owned by this updater, and resets interrupted transfer labels when there is no live operation. Cleanup failures are retried on a later launch/check.
 
+## First-time setup
+
+When F1 TV and a saved candidate are absent, the activity offers Download or Not now. Automatic prompting happens once; Check for updates can offer setup again. Only Download calls the initial-download entry point. Daily jobs use the normal entry point, which returns without a network download when F1 TV is absent.
+
+First-time setup requires the upstream release SHA-256. The downloaded candidate records the user's initial-install approval, original absence, package identity and digest. Installation revalidates that pinned bundle and checks the current installed package again. If another app installation appears meanwhile, normal update/replacement rules apply; setup consent cannot authorize a downgrade or removal.
+
+The app installs base and selected split APKs together using Android's PackageInstaller. It does not merge or re-sign Alexvbp's APKs, and needs no external split installer. Android permission and installation prompts still apply.
+
 ## Signing-key changes
 
 Matching signing keys use the normal update path. A recognized signing lineage can also use that path. An unrelated key requires a separate replacement, with a verified upstream release digest, an explicit data-loss warning, and Android uninstall confirmation. Background jobs never remove F1 TV.
 
-Removal clears F1 TV's login and local settings. The verified bundle stays in the updater's storage, so the user can retry installation after cancellation or interruption. An empty device cannot use this as an arbitrary first-install tool: recovery requires a previously pinned, user-initiated replacement.
+Removal clears F1 TV's login and local settings. The verified bundle stays in the updater's storage, so the user can retry installation after cancellation or interruption. Replacement recovery requires a previously pinned, user-initiated replacement; new setup requires its own explicit download approval.
 
 ## Two editions
 

@@ -34,6 +34,7 @@ public final class MainActivity extends Activity {
     private Button check;
     private Button open;
     private boolean busy;
+    private boolean setupPromptOpen;
     private static final int REMOVE_F1 = 42;
     private final SharedPreferences.OnSharedPreferenceChangeListener stateChanged =
             (prefs, key) -> runOnUiThread(() -> { if (!isDestroyed()) render(); });
@@ -135,9 +136,10 @@ public final class MainActivity extends Activity {
 
         LinearLayout footer = new LinearLayout(this);
         footer.setGravity(Gravity.CENTER_VERTICAL);
-        footer.addView(text(getString(R.string.disclaimer), 12, 0xff9ba4b0),
-                new LinearLayout.LayoutParams(-1, -2));
-        LinearLayout.LayoutParams footerSize = new LinearLayout.LayoutParams(-1, dp(24));
+        TextView disclaimer = text(getString(R.string.disclaimer), 12, 0xff9ba4b0);
+        disclaimer.setMaxLines(2);
+        footer.addView(disclaimer, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams footerSize = new LinearLayout.LayoutParams(-1, dp(36));
         footerSize.topMargin = dp(compact ? 12 : 18);
         root.addView(footer, footerSize);
         check.requestFocus();
@@ -145,7 +147,8 @@ public final class MainActivity extends Activity {
         Updater.schedule(this);
         render();
         // First use should trigger a check without waiting a day.
-        if (!Updater.prefs(this).getBoolean("first_check_started", false)) {
+        if (Updater.installedVersion(this) >= 0 &&
+                !Updater.prefs(this).getBoolean("first_check_started", false)) {
             Updater.prefs(this).edit().putBoolean("first_check_started", true).apply();
             checkNow();
         }
@@ -180,6 +183,11 @@ public final class MainActivity extends Activity {
         Button b = new Button(this);
         b.setId(View.generateViewId());
         b.setText(label);
+        styleButton(b);
+        b.setOnClickListener(click);
+        return b;
+    }
+    private void styleButton(Button b) {
         b.setAllCaps(false);
         b.setTextSize(17);
         b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -196,8 +204,6 @@ public final class MainActivity extends Activity {
         b.setOnFocusChangeListener((view, focused) ->
                 b.setCompoundDrawablesRelativeWithIntrinsicBounds(
                         focused ? R.drawable.focus_chevron : 0, 0, 0, 0));
-        b.setOnClickListener(click);
-        return b;
     }
     private int dp(int x) { return (int)(x * getResources().getDisplayMetrics().density + .5f); }
     private String shortVersion(String value) {
@@ -252,13 +258,13 @@ public final class MainActivity extends Activity {
                     : "Check your connection and try checking for updates again.");
         } else if (ready) {
             badge.setText("UPDATE AVAILABLE");
-            heading.setText(missing ? "Finish installing F1 TV" : "Ready to update");
+            heading.setText(missing ? "Ready to install F1 TV" : "Ready to update");
             status.setText(missing ? "Your update is saved. Choose Install update to finish."
                     : "The latest version is ready to install.");
         } else if (missing || state.contains("no launcher")) {
             badge.setText("GET STARTED");
             heading.setText("F1 TV isn’t installed");
-            status.setText("Install F1 TV first, then check for updates here.");
+            status.setText("Choose Check for updates to download F1 TV.");
         } else if (state.contains("up to date") || state.contains("no newer") ||
                 state.contains("installed successfully")) {
             badge.setText("ALL SET");
@@ -281,22 +287,60 @@ public final class MainActivity extends Activity {
         install.setEnabled(!busy && Updater.ready(this) &&
                 !state.equals("Waiting for Android installation confirmation") &&
                 !state.equals("Awaiting installation confirmation"));
-        check.setNextFocusRightId(install.isEnabled() ? install.getId() : open.getId());
+        open.setEnabled(Updater.installedVersion(this) >= 0);
+        check.setNextFocusRightId(install.isEnabled() ? install.getId()
+                : open.isEnabled() ? open.getId() : check.getId());
+        install.setNextFocusRightId(open.isEnabled() ? open.getId() : install.getId());
         open.setNextFocusLeftId(install.isEnabled() ? install.getId() : check.getId());
     }
     private void checkNow() {
+        if (busy) return;
+        if (Updater.installedVersion(this) < 0 && !Updater.ready(this)) {
+            offerSetup(true);
+            return;
+        }
+        runCheck(false);
+    }
+
+    private void offerSetup(boolean requested) {
+        if (busy || setupPromptOpen || isFinishing() || isDestroyed() ||
+                Updater.installedVersion(this) >= 0 || Updater.ready(this)) return;
+        if (!requested && Updater.prefs(this).getBoolean("setup_prompt_shown", false)) return;
+        Updater.prefs(this).edit().putBoolean("setup_prompt_shown", true).apply();
+        setupPromptOpen = true;
+        AlertDialog setup = new AlertDialog.Builder(this)
+                .setTitle(R.string.setup_title)
+                .setMessage(R.string.setup_message)
+                .setNegativeButton("Not now", null)
+                .setPositiveButton("Download", (dialog, which) -> runCheck(true))
+                .setOnDismissListener(dialog -> { setupPromptOpen = false; render(); })
+                .create();
+        setup.setOnShowListener(dialog -> {
+            for (int which : new int[] {AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_POSITIVE}) {
+                Button action = setup.getButton(which);
+                styleButton(action);
+                action.setMinWidth(dp(150));
+                action.setMinHeight(dp(56));
+            }
+            setup.getButton(AlertDialog.BUTTON_POSITIVE).requestFocus();
+        });
+        setup.show();
+    }
+
+    private void runCheck(boolean initialSetup) {
         if (busy) return;
         busy = true;
         render();
         show("Checking for updates…");
         io.execute(() -> {
             try {
-                Updater.checkAndDownload(getApplicationContext(), message ->
-                        runOnUiThread(() -> show(message)));
+                Updater.Progress progress = message -> runOnUiThread(() -> { if (!isDestroyed()) show(message); });
+                if (initialSetup) Updater.downloadInitial(getApplicationContext(), progress);
+                else Updater.checkAndDownload(getApplicationContext(), progress);
             } catch (Exception e) {
                 Updater.recordError(getApplicationContext(), e);
             } finally {
-                runOnUiThread(() -> { busy = false; render(); });
+                runOnUiThread(() -> { busy = false; if (!isDestroyed()) render(); });
             }
         });
     }
@@ -382,7 +426,9 @@ public final class MainActivity extends Activity {
         io.execute(() -> {
             try { Updater.reconcile(getApplicationContext()); }
             catch (Exception e) { Updater.recordError(getApplicationContext(), e); }
-            runOnUiThread(() -> { if (!isDestroyed()) render(); });
+            runOnUiThread(() -> {
+                if (!isDestroyed()) { render(); offerSetup(false); }
+            });
         });
     }
     @Override public void onDestroy() {

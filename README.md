@@ -24,7 +24,7 @@ No more moving every new update from your computer to your TV. The updater watch
 
 ## Get started
 
-**You’ll need Android TV 8.0 or newer and an existing installation of patched F1 TV.** [Need F1 TV as well?](docs/install.md#need-f1-tv-as-well)
+**You’ll need Android TV 8.0 or newer.** Version 0.3.0 can also set up F1 TV if it is not installed. Watching requires your own valid F1 TV subscription; 4K requires the appropriate Premium entitlement where available. [Subscription details](https://f1help.formula1.com/article/F1-TV-subscription-comparison)
 
 **New to installing TV apps? Choose one route — no coding or building needed.**
 
@@ -34,8 +34,10 @@ No more moving every new update from your computer to your TV. The updater watch
 | [Phone transfer guide](docs/install.md#phone--tv) | [USB guide](docs/install.md#usb-stick) | [Wi-Fi guide + copyable AI prompt](docs/install.md#wi-fi-with-ai-help) |
 
 1. Download **`f1tv-patch-updater-<version>.apk`** from the [latest release](https://github.com/Lzchyi/f1tv-patch-updater/releases/latest) and install it using your chosen guide. Select the APK under **Assets**, not **Source code**.
-2. Open **F1TV Patch Updater**. When an update is ready, choose **Install update**. Android may ask you to allow this updater to install apps once.
-3. Confirm installation on your TV. After that, future patch checks and downloads happen on the TV—open the updater when you’re ready to install.
+2. Open **F1TV Patch Updater**. If F1 TV is missing, choose **Download** in the setup prompt, or **Not now** to leave it. You can start setup later with **Check for updates**.
+3. When the download is ready, choose **Install update**. Android may ask you to allow this updater to install apps once, then confirm installation. Already have F1 TV? The same three buttons handle future updates.
+
+The updater installs the upstream bundle directly. **No AntiSplit-M or separate split installer is needed.** After setup, future patch checks and downloads happen on the TV; you choose when to install.
 
 **Already using an older personal/prototype build?** This public edition installs separately. Future public releases use the same signing identity so the updater itself can be upgraded in place.
 
@@ -48,7 +50,9 @@ Actual captures of the public edition running on Android TV.
 | ![Readable installed and latest versions](docs/screenshots/overview.png) | ![High-contrast remote selection](docs/screenshots/remote-focus.png) |
 | Your installed version and the latest release, together. | Clear focus, large controls, and no scrolling. |
 
-<sub>Version 0.2.3 checks the release before downloading and removes completed or interrupted update files automatically.</sub>
+![Optional first-time setup](docs/screenshots/setup.png)
+
+<sub>The setup prompt was captured on a physical TV using an isolated test target. Version 0.3.0 keeps the same three-button screen, adds optional first-time setup, checks versions before downloading and cleans up installed bundles automatically.</sub>
 
 ## A few useful things to know
 
@@ -60,6 +64,8 @@ Actual captures of the public edition running on Android TV.
 More detail: [How updates work](docs/how-it-works.md) · [Validation and limitations](docs/validation.md) · [Changelog](CHANGELOG.md)
 
 ## Credits & independence
+
+**Independent hobby project intended for personal use with your own valid F1 TV subscription. No subscription or streaming content is provided.** Use remains subject to [F1 TV's terms](https://www.formula1.com/en/information/f1-tv-subscription-terms.384sQqjslhQ2Rhm1LdKgfD); this project does not authorise modifications or uses prohibited by those terms. This intended-use notice does not change the MIT licence for the updater's own code.
 
 The 4K patch is created and maintained by **[Alexvbp](https://github.com/Alexvbp)** in **[f1tv-4k-patch](https://github.com/Alexvbp/f1tv-4k-patch)**. This updater simply makes that project’s releases easier to install on Android TV. Thanks to Alexvbp and the upstream contributors.
 

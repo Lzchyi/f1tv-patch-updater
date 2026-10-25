@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="disclaimer">Unofficial. Not affiliated with Formula 1 or F1 TV.</string>
+    <string name="disclaimer">Personal use. Valid F1 TV subscription required.\nUnofficial. Not affiliated with Formula 1 or F1 TV.</string>
+    <string name="setup_title">Download F1 TV?</string>
+    <string name="setup_message">F1 TV isn’t installed. Download the latest patched version from Alexvbp?\n\nYou can install it when it’s ready. A valid F1 TV subscription is required to watch.</string>
 </resources>

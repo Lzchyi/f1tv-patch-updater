@@ -79,6 +79,10 @@ public final class Updater {
                     ? "Unknown (build " + version(info) + ")" : info.versionName;
         } catch (PackageManager.NameNotFoundException e) { return "Not installed"; }
     }
+    private static PackageInfo installedPackage(Context c) throws Exception {
+        try { return c.getPackageManager().getPackageInfo(TARGET, signatureFlags()); }
+        catch (PackageManager.NameNotFoundException e) { return null; }
+    }
     private static long version(PackageInfo info) {
         return Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode;
     }
@@ -95,6 +99,7 @@ public final class Updater {
                 .remove("candidate_asset_key")
                 .remove("candidate_sha256").remove("candidate_signer")
                 .remove("candidate_digest_verified").remove("candidate_replacement")
+                .remove("candidate_initial_install")
                 .remove("candidate_original_version").remove("candidate_original_signer")
                 .remove("replacement_pending").apply();
     }
@@ -206,6 +211,15 @@ public final class Updater {
     }
 
     public static void checkAndDownload(Context context, Progress progress) throws Exception {
+        checkAndDownload(context, progress, false);
+    }
+
+    /** Called by the activity only after the user selects Download in the setup prompt. */
+    public static void downloadInitial(Context context, Progress progress) throws Exception {
+        checkAndDownload(context, progress, true);
+    }
+
+    private static void checkAndDownload(Context context, Progress progress, boolean initialSetup) throws Exception {
         Context c = context.getApplicationContext();
         synchronized (LOCK) {
             reconcile(c);
@@ -215,11 +229,27 @@ public final class Updater {
                 return;
             }
             if (installedVersion(c) < 0) {
-                if (!ready(c)) throw new SecurityException(
-                        "Install an initial patched F1 TV build first; no cached replacement is available.");
-                setState(c, "F1 TV was removed. Install the downloaded replacement to finish.");
-                progress.report("The verified replacement is still saved. Select Install downloaded update.");
-                return;
+                if (ready(c)) {
+                    try {
+                        Bundle saved = verifiedCandidate(c);
+                        try { action(c, saved); }
+                        finally { saved.clean(); }
+                    } catch (SecurityException e) {
+                        // An invalid saved setup must not trap the user in an un-installable state.
+                        UpdateFiles.cleanup(c.getFilesDir(), c.getCacheDir(), true);
+                        clearCandidateMetadata(c);
+                        throw e;
+                    }
+                    prefs(c).edit().putString("last_error", "").apply();
+                    setState(c, readyState(c));
+                    progress.report("Your download is saved. Choose Install update to finish.");
+                    return;
+                }
+                if (!initialSetup) {
+                    setState(c, "F1 TV is not installed. Open the updater to set it up.");
+                    progress.report("Choose Check for updates to download F1 TV.");
+                    return;
+                }
             }
             progress.report("Checking GitHub stable releases…");
             setState(c, "Checking GitHub");
@@ -250,12 +280,14 @@ public final class Updater {
                 throw new SecurityException("Unsupported or malformed release digest");
             String assetKey = releaseId + ":" + asset.getLong("id") + ":" + size + ":" +
                     digest + ":" + asset.optString("updated_at", "");
-            PackageInfo before = c.getPackageManager().getPackageInfo(TARGET, signatureFlags());
-            boolean sameInstallation = matchesCheckedInstallation(c, before);
+            PackageInfo before = installedPackage(c);
+            if (before == null && (!initialSetup || digest.isEmpty()))
+                throw new SecurityException("Initial installation requires confirmation and a release SHA-256");
+            boolean sameInstallation = before != null && matchesCheckedInstallation(c, before);
             boolean sameRelease = prefs(c).getLong("checked_release_id", -1) == releaseId;
             String checkedAsset = prefs(c).getString("checked_asset_key", "");
             boolean changedAsset = sameRelease && !checkedAsset.isEmpty() && !checkedAsset.equals(assetKey);
-            if (ReleaseCheckPolicy.canSkipDownload(before.versionName, tag, release.optString("name", ""),
+            if (before != null && ReleaseCheckPolicy.canSkipDownload(before.versionName, tag, release.optString("name", ""),
                     sameInstallation && sameRelease && checkedAsset.equals(assetKey), changedAsset)) {
                 rememberCurrent(c, before, releaseId, assetKey, tag);
                 progress.report("Current patched release is already installed");
@@ -264,7 +296,7 @@ public final class Updater {
             boolean matchingCandidateAsset = assetKey.equals(prefs(c).getString("candidate_asset_key", "")) ||
                     (!digest.isEmpty() && digest.equalsIgnoreCase("sha256:" +
                             prefs(c).getString("candidate_sha256", "")));
-            if (ready(c) && matchingCandidateAsset &&
+            if (before != null && ready(c) && matchingCandidateAsset &&
                     releaseId == prefs(c).getLong("candidate_release_id", -1) &&
                     version(before) == prefs(c).getLong("candidate_original_version", -1) &&
                     prefs(c).getString("candidate_original_signer", "").equals(signer(before))) {
@@ -288,15 +320,15 @@ public final class Updater {
                 PackageInfo existing;
                 UpdatePolicy.Action action;
                 try {
-                    existing = c.getPackageManager().getPackageInfo(TARGET, signatureFlags());
-                    long installed = version(existing);
+                    existing = installedPackage(c);
+                    long installed = existing == null ? -1 : version(existing);
                     if (bundle.version <= installed) {
                         rememberCurrent(c, existing, releaseId, assetKey, tag);
                         progress.report("No newer compatible Android app version");
                         return;
                     }
                     action = UpdatePolicy.assess(bundle.version, installed,
-                            canUpdate(bundle.base, existing), !digest.isEmpty(), false);
+                            existing != null && canUpdate(bundle.base, existing), !digest.isEmpty(), false, initialSetup);
                 } finally { bundle.clean(); }
                 // Never remove the last successfully verified candidate until the replacement is ready.
                 File completed = candidate(c);
@@ -311,8 +343,9 @@ public final class Updater {
                         .putString("candidate_signer", bundle.signer)
                         .putBoolean("candidate_digest_verified", !digest.isEmpty())
                         .putBoolean("candidate_replacement", action == UpdatePolicy.Action.REPLACE)
-                        .putLong("candidate_original_version", version(existing))
-                        .putString("candidate_original_signer", signer(existing))
+                        .putBoolean("candidate_initial_install", action == UpdatePolicy.Action.INSTALL)
+                        .putLong("candidate_original_version", existing == null ? -1 : version(existing))
+                        .putString("candidate_original_signer", existing == null ? "" : signer(existing))
                         .putLong("checked_release_id", releaseId)
                         .putString("checked_asset_key", assetKey)
                         .remove("checked_version").remove("checked_update_time").remove("checked_version_name")
@@ -520,7 +553,7 @@ public final class Updater {
     }
 
     public static String readyState(Context c) {
-        if (installedVersion(c) < 0) return "Install the downloaded replacement to finish";
+        if (installedVersion(c) < 0) return "Ready to install F1 TV";
         return prefs(c).getBoolean("candidate_replacement", false)
                 ? "Signing key changed. Replacement needs confirmation and clears F1 TV login."
                 : "Ready to install";
@@ -540,9 +573,7 @@ public final class Updater {
     }
 
     private static UpdatePolicy.Action action(Context c, Bundle bundle) throws Exception {
-        PackageInfo existing;
-        try { existing = c.getPackageManager().getPackageInfo(TARGET, signatureFlags()); }
-        catch (PackageManager.NameNotFoundException e) { existing = null; }
+        PackageInfo existing = installedPackage(c);
         boolean recovery = prefs(c).getBoolean("replacement_pending", false) &&
                 prefs(c).getLong("candidate_original_version", -1) > 0 &&
                 bundle.version > prefs(c).getLong("candidate_original_version", -1) &&
@@ -550,7 +581,10 @@ public final class Updater {
         UpdatePolicy.Action result = UpdatePolicy.assess(bundle.version,
                 existing == null ? -1 : version(existing),
                 existing != null && canUpdate(bundle.base, existing),
-                prefs(c).getBoolean("candidate_digest_verified", false), recovery);
+                prefs(c).getBoolean("candidate_digest_verified", false), recovery,
+                prefs(c).getBoolean("candidate_initial_install", false) &&
+                        prefs(c).getLong("candidate_original_version", 0) == -1 &&
+                        prefs(c).getString("candidate_original_signer", "").isEmpty());
         if (result == UpdatePolicy.Action.REPLACE &&
                 (version(existing) != prefs(c).getLong("candidate_original_version", -1) ||
                  !signer(existing).equals(prefs(c).getString("candidate_original_signer", ""))))
