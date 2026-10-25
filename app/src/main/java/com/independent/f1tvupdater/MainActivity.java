@@ -54,7 +54,7 @@ public final class MainActivity extends Activity {
         logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
         logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         header.addView(logo, new LinearLayout.LayoutParams(dp(128), -1));
-        TextView title = text("F1 TV Updater", 26, Color.WHITE);
+        TextView title = text(getString(R.string.app_title), 26, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setPadding(dp(18), 0, 0, 0);
         header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
@@ -135,9 +135,8 @@ public final class MainActivity extends Activity {
 
         LinearLayout footer = new LinearLayout(this);
         footer.setGravity(Gravity.CENTER_VERTICAL);
-        footer.addView(text("Checks every day · Install when you choose", 12, 0xff9ba4b0),
-                new LinearLayout.LayoutParams(0, -2, 1));
-        footer.addView(text("Independent updater", 12, 0xff9ba4b0));
+        footer.addView(text(getString(R.string.disclaimer), 12, 0xff9ba4b0),
+                new LinearLayout.LayoutParams(-1, -2));
         LinearLayout.LayoutParams footerSize = new LinearLayout.LayoutParams(-1, dp(24));
         footerSize.topMargin = dp(compact ? 12 : 18);
         root.addView(footer, footerSize);

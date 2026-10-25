@@ -1,5 +1,7 @@
 plugins { id 'com.android.application' }
 
+def hasCommunitySigning = System.getenv('UPDATER_KEYSTORE_FILE') != null
+
 android {
     namespace 'com.independent.f1tvupdater'
     compileSdk 35
@@ -8,13 +10,48 @@ android {
         applicationId 'com.independent.f1tvupdater'
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName '0.2.1'
+        versionCode 5
+        versionName '0.2.2'
+    }
+
+    signingConfigs {
+        communityRelease {
+            if (hasCommunitySigning) {
+                storeFile file(System.getenv('UPDATER_KEYSTORE_FILE'))
+                storePassword System.getenv('UPDATER_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('UPDATER_KEY_ALIAS')
+                keyPassword System.getenv('UPDATER_KEY_PASSWORD')
+            }
+        }
+    }
+
+    flavorDimensions 'edition'
+    productFlavors {
+        personal {
+            dimension 'edition'
+            signingConfig signingConfigs.debug
+            resValue 'string', 'app_name', 'F1TV Patch Updater'
+            resValue 'string', 'app_title', 'F1 TV Updater'
+        }
+        community {
+            dimension 'edition'
+            applicationIdSuffix '.community'
+            resValue 'string', 'app_name', 'F1TV Patch Updater'
+            resValue 'string', 'app_title', 'F1 TV Updater'
+            if (hasCommunitySigning) signingConfig signingConfigs.communityRelease
+        }
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// A public release must never silently fall back to unsigned or temporary-key output.
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(':app:packageCommunityRelease') && !hasCommunitySigning) {
+        throw new GradleException('Public release signing is required. Supply the UPDATER_KEYSTORE_* environment variables.')
     }
 }
 

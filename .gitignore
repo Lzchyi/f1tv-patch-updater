@@ -7,3 +7,8 @@ local.properties
 .DS_Store
 *.jks
 *.keystore
+
+# Private personal-brand overlay; public builds use the main resource.
+app/src/personal/res/
+*.p12
+.signing/

@@ -1,13 +1,13 @@
 # F1TV Patch Updater
 
 - Native Android TV app in `app/src/main/java/com/independent/f1tvupdater`; no third-party runtime dependencies.
-- `Updater` owns release downloads, bounded APKM extraction, split selection, pinned candidate metadata, and PackageInstaller sessions. `UpdatePolicy` contains host-testable update/replacement/recovery decisions.
-- `MainActivity` owns user confirmation and Android uninstall requests. Background jobs must never uninstall F1 TV or initiate a signing-key replacement.
-- Display readable version names; compare numeric version codes for upgrade checks.
-- Keep `MainActivity` on one TV screen without scroll containers. Use the red fill, white border and chevron focus treatment; D-pad left/right skips disabled actions, and up/down stays in the button row. Keep user wording simple and retain explicit sign-in/data-loss warnings.
-- The supplied bitmap is the TV banner. The adaptive launcher icon wraps that same unmodified bitmap with safe padding.
-- Same-key updates preserve data. A different key requires the trusted upstream release SHA-256, a fully cached and verified candidate, an explicit data-loss warning, and Android uninstall confirmation. Only a previously pinned, user-initiated replacement may recover after F1 TV is removed.
-- Keep downloaded candidates through cancellation/failure. Never permit a downgrade or accept an arbitrary initial install.
-- Build with JDK 17, Gradle 8.9, and Android API 35: `gradle --no-daemon assembleDebug testDebugUnitTest lintDebug`.
-- Run host tests/build/lint only. Do not launch simulators or run simulator tests. Physical TV checks use an explicitly authorized ADB connection; destructive replacement requires user consent.
-- Never commit APKs, keystores, credentials, local SDK paths, or device/app data. CI debug signing is temporary; do not promise in-place updater upgrades across CI builds.
+- `Updater` owns releases, bounded APKM extraction, split selection, pinned candidate metadata and PackageInstaller sessions. `UpdatePolicy` contains host-testable decisions. `MainActivity` owns confirmation and Android uninstall requests.
+- Never uninstall F1 TV from a background job. Same-key updates preserve data; unrelated keys require the trusted upstream SHA-256, revalidated candidate, explicit data-loss/sign-in warning and Android confirmation. Only a pinned, user-initiated replacement may recover after removal.
+- Display readable versions; compare numeric version codes. Keep candidates through cancellation/failure. Never permit downgrades or arbitrary first installs.
+- Keep one TV screen, three horizontal actions and the red/white/chevron focus selector. Skip disabled actions; up/down stays in the row. Keep the short non-affiliation footer visible and credit Alexvbp in public documentation.
+- `community` has application ID suffix `.community` and uses the main branding resource. `personal` preserves the original app identity and uses an ignored local overlay at `app/src/personal/res/drawable-nodpi/tv_banner.png`. Do not publish that private overlay or the personal APK.
+- JDK 17, Gradle 8.9, Android API 35. CI: `gradle --no-daemon assembleCommunityDebug testCommunityDebugUnitTest lintCommunityDebug`. Personal local check: `assemblePersonalDebug lintPersonalDebug`.
+- Public release: `assembleCommunityRelease lintCommunityRelease`, with `UPDATER_KEYSTORE_FILE`, `UPDATER_KEYSTORE_PASSWORD`, `UPDATER_KEY_ALIAS`, `UPDATER_KEY_PASSWORD` supplied privately. Signing material is retained locally, not in Git. Never fall back to a temporary debug key for a public release. CI checks do not publish releases.
+- Public APKs and checksums go to GitHub Releases after checks pass. Keep README focused on downloads, usage, screenshots and credits; keep CHANGELOG current. Screenshot only the public edition for public docs, without device/account data.
+- No simulator tests or launches. Use host tests, static/build checks and an authorized physical-TV ADB connection. Destructive replacement needs explicit consent.
+- Never commit APKs, keystores, passwords, local SDK paths or device/app diagnostics. Licence covers updater code, not third-party branding or upstream software.
