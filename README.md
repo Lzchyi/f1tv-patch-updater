@@ -73,6 +73,15 @@ The updater version appears at the bottom right. From **0.3.1.1**, press **Up** 
 
 **Sony BRAVIA VH1 · Android 12 (API 31) · 32-bit ARM (`armeabi-v7a`)**. Version detection, matching-build download avoidance, remote navigation, installation/retry and cleanup have been exercised on this TV. Patched F1 TV **3.0.50** is installed, and the owner reports working playback. This is a tested environment, rather than a claim that every Android TV device or every 4K/HDR path is verified. [See the test results and their scope](docs/validation.md).
 
+### Community-reported compatibility
+
+| Device | OS | Feedback |
+| :--- | :--- | :--- |
+| SEI804 series (Google-certified Android TV) | Android TV 14 | Successfully installed patched F1 TV using the updater |
+| Onn 4K Pro | Android TV 14 (reported) | Updater working fine |
+
+*Community reports as of 25 October 2026, not independently verified tests. Neither report establishes measured 4K/HDR playback or universal device support.*
+
 More detail: [How updates work](docs/how-it-works.md) · [Validation and limitations](docs/validation.md) · [Changelog](CHANGELOG.md)
 
 ## Credits & independence
