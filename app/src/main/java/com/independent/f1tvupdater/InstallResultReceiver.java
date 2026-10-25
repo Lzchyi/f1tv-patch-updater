@@ -39,6 +39,7 @@ public final class InstallResultReceiver extends BroadcastReceiver {
             }
             Updater.prefs(context).edit()
                     .putLong("installed_release_id", Updater.prefs(context).getLong("installing_release_id", -1))
+                    .putLong("installed_version", actual)
                     .remove("installing_release_id")
                     .remove("installing_version")
                     .putString("state", "Installed successfully")
@@ -48,7 +49,7 @@ public final class InstallResultReceiver extends BroadcastReceiver {
             return;
         }
         String error = result.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
-        Updater.setState(context, "Installation failed; existing F1 TV was not uninstalled");
+        Updater.setState(context, "Installation did not finish. Download is saved; retry installation.");
         Updater.prefs(context).edit()
                 .remove("installing_release_id").remove("installing_version")
                 .putString("last_error", "Code " + status + ": " +

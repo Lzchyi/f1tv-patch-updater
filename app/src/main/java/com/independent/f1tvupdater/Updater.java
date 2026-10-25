@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -40,8 +39,8 @@ import java.util.zip.ZipFile;
 
 /**
  * Independent Android TV update client for an upstream, externally patched app.
- * No root, silent install, uninstall, or manipulation of F1TV APK contents.
- * A matching *already installed* app signature is required for all updates.
+ * Same-key updates preserve data. Different-key releases require the user to
+ * confirm removal in Android before installing the verified, cached replacement.
  */
 public final class Updater {
     private Updater() {}
@@ -72,6 +71,13 @@ public final class Updater {
         try { return version(c.getPackageManager().getPackageInfo(TARGET, 0)); }
         catch (Exception ignored) { return -1; }
     }
+    public static String installedVersionName(Context c) {
+        try {
+            PackageInfo info = c.getPackageManager().getPackageInfo(TARGET, 0);
+            return info.versionName == null || info.versionName.isEmpty()
+                    ? "Unknown (build " + version(info) + ")" : info.versionName;
+        } catch (PackageManager.NameNotFoundException e) { return "Not installed"; }
+    }
     private static long version(PackageInfo info) {
         return Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode;
     }
@@ -80,11 +86,16 @@ public final class Updater {
     }
     public static boolean ready(Context c) {
         return candidate(c).isFile() &&
+                !prefs(c).getString("candidate_sha256", "").isEmpty() &&
                 prefs(c).getLong("candidate_version", -1) > installedVersion(c);
     }
     public static void cleanupCandidate(Context c) {
         candidate(c).delete();
-        prefs(c).edit().remove("candidate_version").remove("candidate_release_id").apply();
+        prefs(c).edit().remove("candidate_version").remove("candidate_release_id")
+                .remove("candidate_sha256").remove("candidate_signer")
+                .remove("candidate_digest_verified").remove("candidate_replacement")
+                .remove("candidate_original_version").remove("candidate_original_signer")
+                .remove("replacement_pending").apply();
     }
     public static void schedule(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
@@ -108,6 +119,13 @@ public final class Updater {
                 progress.report("An installation is pending; update check deferred");
                 return;
             }
+            if (installedVersion(c) < 0) {
+                if (!ready(c)) throw new SecurityException(
+                        "Install an initial patched F1 TV build first; no cached replacement is available.");
+                setState(c, "F1 TV was removed. Install the downloaded replacement to finish.");
+                progress.report("The verified replacement is still saved. Select Install downloaded update.");
+                return;
+            }
             progress.report("Checking GitHub stable releases…");
             setState(c, "Checking GitHub");
             String response = readSmall(API, "application/vnd.github+json", 1_000_000);
@@ -126,15 +144,18 @@ public final class Updater {
                 }
             }
             if (asset == null) throw new Exception("No f1tv-uhd-patched.apkm asset in latest stable release");
-            if (releaseId == prefs(c).getLong("installed_release_id", -1)) {
+            if (releaseId == prefs(c).getLong("installed_release_id", -1) &&
+                    installedVersion(c) == prefs(c).getLong("installed_version", -1)) {
                 setState(c, "Up to date (last installed release)");
                 prefs(c).edit().putString("last_error", "").apply();
                 progress.report("Current patched release is already installed");
                 return;
             }
-            if (candidate(c).exists() && releaseId == prefs(c).getLong("candidate_release_id", -1)
-                    && prefs(c).getLong("candidate_version", -1) > installedVersion(c)) {
-                setState(c, "Ready to install");
+            if (ready(c) && releaseId == prefs(c).getLong("candidate_release_id", -1) &&
+                    installedVersion(c) == prefs(c).getLong("candidate_original_version", -1) &&
+                    prefs(c).getString("candidate_original_signer", "").equals(signer(
+                            c.getPackageManager().getPackageInfo(TARGET, signatureFlags())))) {
+                setState(c, readyState(c));
                 progress.report("Previously downloaded update ready for installation");
                 return;
             }
@@ -159,28 +180,41 @@ public final class Updater {
                 progress.report("Checking architecture, package version, and signing certificate…");
                 setState(c, "Verifying " + tag);
                 Bundle bundle = prepare(c, tmp);
+                PackageInfo existing;
+                UpdatePolicy.Action action;
                 try {
-                    long installed = installedVersion(c);
-                    if (installed < 0) throw new SecurityException(
-                            "F1 TV is not installed. For safety, install an initial patched build manually first.");
+                    existing = c.getPackageManager().getPackageInfo(TARGET, signatureFlags());
+                    long installed = version(existing);
                     if (bundle.version <= installed) {
                         setState(c, "No newer Android package version available");
                         prefs(c).edit().putString("candidate_tag", tag).putString("last_error", "").apply();
                         progress.report("No newer compatible Android app version");
                         return;
                     }
+                    action = UpdatePolicy.assess(bundle.version, installed,
+                            canUpdate(bundle.base, existing), !digest.isEmpty(), false);
                 } finally { bundle.clean(); }
                 // Never remove the last successfully verified candidate until the replacement is ready.
                 File completed = candidate(c);
                 if (completed.exists() && !completed.delete()) throw new Exception("Cannot replace cached update");
                 if (!tmp.renameTo(completed)) throw new Exception("Cannot store verified update");
-                prefs(c).edit()
+                if (!prefs(c).edit()
                         .putLong("candidate_release_id", releaseId)
                         .putLong("candidate_version", bundle.version)
+                        .putString("candidate_name", bundle.base.versionName)
+                        .putString("candidate_sha256", computed)
+                        .putString("candidate_signer", bundle.signer)
+                        .putBoolean("candidate_digest_verified", !digest.isEmpty())
+                        .putBoolean("candidate_replacement", action == UpdatePolicy.Action.REPLACE)
+                        .putLong("candidate_original_version", version(existing))
+                        .putString("candidate_original_signer", signer(existing))
+                        .remove("replacement_pending")
                         .putString("candidate_tag", tag)
                         .putString("last_error", "")
-                        .putString("state", "Ready to install")
-                        .apply();
+                        .putString("state", action == UpdatePolicy.Action.REPLACE
+                                ? "Signing key changed. Replacement needs confirmation and clears F1 TV login."
+                                : "Ready to install")
+                        .commit()) throw new Exception("Cannot save verified update metadata");
                 progress.report("Release downloaded. Open the updater and confirm installation.");
             } finally { tmp.delete(); }
         }
@@ -206,7 +240,7 @@ public final class Updater {
         conn.setConnectTimeout(15_000);
         conn.setReadTimeout(30_000);
         conn.setInstanceFollowRedirects(true);
-        conn.setRequestProperty("User-Agent", "F1TV-Patch-Updater/0.1 (AndroidTV)");
+        conn.setRequestProperty("User-Agent", "F1TV-Patch-Updater/0.2 (AndroidTV)");
         if (accept != null) conn.setRequestProperty("Accept", accept);
         int code = conn.getResponseCode();
         if (code != 200) {
@@ -258,8 +292,11 @@ public final class Updater {
         final File directory;
         final List<File> apks;
         final long version;
-        Bundle(File directory, List<File> apks, long version) {
-            this.directory = directory; this.apks = apks; this.version = version;
+        final PackageInfo base;
+        final String signer;
+        Bundle(File directory, List<File> apks, PackageInfo base, String signer) {
+            this.directory = directory; this.apks = apks; this.version = version(base);
+            this.base = base; this.signer = signer;
         }
         void clean() { deleteTree(directory); }
     }
@@ -314,15 +351,10 @@ public final class Updater {
                     signatureFlags());
             if (base == null || !TARGET.equals(base.packageName))
                 throw new SecurityException("Bundle base is not an F1 TV APK");
+            if (base.applicationInfo == null || base.applicationInfo.minSdkVersion > Build.VERSION.SDK_INT)
+                throw new SecurityException("The release requires a newer Android version than this TV");
             String baseSigner = signer(base);
             if (baseSigner == null) throw new SecurityException("Cannot authenticate incoming base APK");
-            PackageInfo existing;
-            try { existing = pm.getPackageInfo(TARGET, signatureFlags()); }
-            catch (PackageManager.NameNotFoundException e) {
-                throw new SecurityException("No existing F1 TV installation to authenticate an update");
-            }
-            if (!baseSigner.equals(signer(existing)))
-                throw new SecurityException("APK signing key differs from installed F1 TV; no automatic uninstall is permitted");
             // Individual configuration APK parsing varies by Android OS release. The platform
             // PackageInstaller additionally validates every split's signature as one package.
             for (int i = 1; i < chosen.size(); i++) {
@@ -336,7 +368,7 @@ public final class Updater {
                         throw new SecurityException("Configuration APK signing mismatch");
                 }
             }
-            return new Bundle(dir, chosen, version(base));
+            return new Bundle(dir, chosen, base, baseSigner);
         } catch (Exception e) { deleteTree(dir); throw e; }
     }
     private static int signatureFlags() {
@@ -352,6 +384,93 @@ public final class Updater {
         }
         if (signatures == null || signatures.length != 1) return null;
         return hex(MessageDigest.getInstance("SHA-256").digest(signatures[0].toByteArray()));
+    }
+
+    private static boolean canUpdate(PackageInfo incoming, PackageInfo existing) throws Exception {
+        String installedSigner = signer(existing);
+        if (installedSigner == null) throw new SecurityException("Cannot read installed F1 TV signer");
+        if (installedSigner.equals(signer(incoming))) return true;
+        // A valid v3 signing lineage can preserve data across a key rotation.
+        if (Build.VERSION.SDK_INT >= 28 && incoming.signingInfo != null &&
+                !incoming.signingInfo.hasMultipleSigners()) {
+            Signature[] history = incoming.signingInfo.getSigningCertificateHistory();
+            if (history != null) for (Signature cert : history) {
+                String hash = hex(MessageDigest.getInstance("SHA-256").digest(cert.toByteArray()));
+                if (installedSigner.equals(hash)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static String fileDigest(File file) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream in = new FileInputStream(file)) {
+            byte[] buffer = new byte[65536];
+            int n;
+            while ((n = in.read(buffer)) != -1) digest.update(buffer, 0, n);
+        }
+        return hex(digest.digest());
+    }
+
+    public static String readyState(Context c) {
+        if (installedVersion(c) < 0) return "Install the downloaded replacement to finish";
+        return prefs(c).getBoolean("candidate_replacement", false)
+                ? "Signing key changed. Replacement needs confirmation and clears F1 TV login."
+                : "Ready to install";
+    }
+
+    private static Bundle verifiedCandidate(Context c) throws Exception {
+        if (!ready(c)) throw new SecurityException("No verified newer update ready");
+        if (!fileDigest(candidate(c)).equals(prefs(c).getString("candidate_sha256", "")))
+            throw new SecurityException("Cached bundle changed. Check for updates again.");
+        Bundle bundle = prepare(c, candidate(c));
+        if (bundle.version != prefs(c).getLong("candidate_version", -1) ||
+                !bundle.signer.equals(prefs(c).getString("candidate_signer", ""))) {
+            bundle.clean();
+            throw new SecurityException("Cached package identity changed");
+        }
+        return bundle;
+    }
+
+    private static UpdatePolicy.Action action(Context c, Bundle bundle) throws Exception {
+        PackageInfo existing;
+        try { existing = c.getPackageManager().getPackageInfo(TARGET, signatureFlags()); }
+        catch (PackageManager.NameNotFoundException e) { existing = null; }
+        boolean recovery = prefs(c).getBoolean("replacement_pending", false) &&
+                prefs(c).getLong("candidate_original_version", -1) > 0 &&
+                bundle.version > prefs(c).getLong("candidate_original_version", -1) &&
+                !prefs(c).getString("candidate_original_signer", "").isEmpty();
+        UpdatePolicy.Action result = UpdatePolicy.assess(bundle.version,
+                existing == null ? -1 : version(existing),
+                existing != null && canUpdate(bundle.base, existing),
+                prefs(c).getBoolean("candidate_digest_verified", false), recovery);
+        if (result == UpdatePolicy.Action.REPLACE &&
+                (version(existing) != prefs(c).getLong("candidate_original_version", -1) ||
+                 !signer(existing).equals(prefs(c).getString("candidate_original_signer", ""))))
+            throw new SecurityException("Installed F1 TV changed. Check for updates again.");
+        return result;
+    }
+
+    public static boolean replacementRequired(Context c) throws Exception {
+        synchronized (LOCK) {
+            Bundle bundle = verifiedCandidate(c);
+            try { return action(c, bundle) == UpdatePolicy.Action.REPLACE; }
+            finally { bundle.clean(); }
+        }
+    }
+
+    /** Called only after the user accepts the data-loss warning in the activity. */
+    public static void beginReplacement(Context c) throws Exception {
+        synchronized (LOCK) {
+            Bundle bundle = verifiedCandidate(c);
+            try {
+                if (action(c, bundle) != UpdatePolicy.Action.REPLACE)
+                    throw new SecurityException("Replacement is no longer required");
+                if (!prefs(c).edit().putBoolean("replacement_pending", true)
+                        .putString("state", "Confirm F1 TV removal in Android, then install the saved replacement")
+                        .commit()) throw new Exception("Cannot save replacement recovery state");
+            } finally { bundle.clean(); }
+        }
     }
 
     /** Choose exactly one compatible ABI and density, and a matching/fallback locale. */
@@ -440,14 +559,12 @@ public final class Updater {
     public static void install(Context context) throws Exception {
         Context c = context.getApplicationContext();
         synchronized (LOCK) {
-            if (!ready(c)) throw new Exception("No verified newer update ready");
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls())
                 throw new SecurityException("Grant Install unknown apps permission first");
-            Bundle bundle = prepare(c, candidate(c));
+            Bundle bundle = verifiedCandidate(c);
             try {
-                if (bundle.version != prefs(c).getLong("candidate_version", -1) ||
-                        bundle.version <= installedVersion(c))
-                    throw new SecurityException("Candidate version changed or is not an upgrade");
+                if (action(c, bundle) == UpdatePolicy.Action.REPLACE)
+                    throw new SecurityException("Confirm replacement and remove old F1 TV first");
                 PackageInstaller installer = c.getPackageManager().getPackageInstaller();
                 PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
                         PackageInstaller.SessionParams.MODE_FULL_INSTALL);
